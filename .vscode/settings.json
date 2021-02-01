@@ -1,0 +1,16 @@
+{
+    "cSpell.enableFiletypes": [
+        "!c",
+        "!css",
+        "!latex",
+        "clojure",
+        "coffeescript",
+        "ini",
+        "log",
+        "lua",
+        "razor",
+        "shellscript",
+        "sql"
+    ],
+    "cSpell.language": "en,en-GB"
+}
