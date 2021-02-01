@@ -7,6 +7,9 @@ var height = window.innerHeight
     || document.documentElement.clientHeight
     || document.body.clientHeight;
 
+// var width= window.screen.width
+// var height= window.screen.height
+
 var heightCV = height
 var widthCV = height / 1.7
 
@@ -20,8 +23,8 @@ var stage
 
 
 var protagonist, widthP, heightP
-var life = 3, immortal = false
-var monsters = [], boundsMonsters = [], containerMonsters, widthM, heightM
+var life = 3, scores = 0, immortal = false, life_Text, scores_Text
+var monsters = [], widthM, heightM, exp = 1
 var dx = 5, dy = 5
 var arrBullet = []
 
@@ -34,13 +37,9 @@ var totalBullet = 0
 
 
 
-
-
-
-
-
 function init() {
     createjs.CSSPlugin.install();
+    createjs.RotationPlugin.install();
     var canvas = document.getElementById("demoCanvas");
     canvas.height = height;
     canvas.width = widthCV
@@ -58,13 +57,47 @@ function init() {
     //         } else clearInterval(setCreateWall);
     //     }, 5000 / speed);
 
-    createBackground()
-
-    createMonster(1)
-    creatProtagonist()
+    createLogo()
     createjs.Ticker.setFPS(60);
     createjs.Ticker.addEventListener("tick", stage);
 }
+
+function createLogo() {
+    var image = new Image();
+    image.src = "../img/logo.png";
+    image.onload = function () {
+        var logo = new createjs.Bitmap(image)
+        logo.scaleX = 0;
+        logo.scaleY = 0;
+        stage.addChild(logo);
+        logo.x = (stage.canvas.width - logo.image.width * logo.scaleX) / 2;
+        logo.y = (stage.canvas.height - logo.image.height * logo.scaleY) / 2;
+        stage.update();
+
+        var tween = createjs.Tween.get(logo)
+            .to({ scaleX: 0.5, scaleY: 0.5, x: logo.x / 2, y: logo.y / 2 }, 500, createjs.Ease.linear)
+            .to({ scaleX: 1, scaleY: 1, x: 0, y: logo.y / 2 }, 500, createjs.Ease.linear)
+            .call(
+                () => {
+                    var tween = createjs.Tween.get(logo, { loop: -1 })
+                        .to({ alpha: 0 }, 100, createjs.Ease.linear)
+                        .to({ alpha: 1 }, 100, createjs.Ease.linear)
+                });
+        setTimeout(
+            function () {
+                tween.setPaused(true);
+                stage.removeChild(logo)
+                start()
+            }, 3000);
+    }
+}
+function start() {
+    createBackground()
+    createMonster(exp)
+    creatProtagonist()
+}
+
+
 
 function createBackground() {
     var image = new Image();
@@ -73,7 +106,13 @@ function createBackground() {
         var bg = new createjs.Bitmap(image);
         bg.scaleX = widthCV / image.width;
         bg.scaleY = heightCV / image.height;
-        stage.addChild(bg);
+        life_Text = new createjs.Text(life, "20px Arial", "#ff7700");
+        life_Text.x = 30;
+        life_Text.y = 20
+        scores_Text = new createjs.Text('Scores: ' + scores, "20px Arial", "#ff7700");
+        scores_Text.x = widthCV - 100;
+        scores_Text.y = 20
+        stage.addChild(bg, life_Text, scores_Text);
         stage.update();
     }
 }
@@ -89,10 +128,14 @@ function creatProtagonist() {
         protagonist.x = (widthCV - image.width * 0.3) / 2
         protagonist.y = heightCV - image.height * 0.5
         stage.addChild(protagonist);
+        protagonist.setBounds(protagonist.x, protagonist.y, widthP, heightP);
+
 
         protagonist.on("pressmove", function (evt) {
             evt.target.x = evt.stageX - 50;
             evt.target.y = evt.stageY - 50;
+            protagonist.setBounds(evt.stageX - 50, evt.stageX - 50, widthP, heightP);
+
         });
         stage.update();
     }
@@ -100,6 +143,8 @@ function creatProtagonist() {
 
 
 function createMonster(exp) {
+    console.log(monsters);
+    var arrMonsters = []
     var image = new Image();
     image.src = "../img/e" + exp + ".png";
     var monster
@@ -109,25 +154,27 @@ function createMonster(exp) {
         monster.scaleY = 0.2;
         widthM = image.width * 0.2
         heightM = image.height * 0.2
-        monster.x = 0
+        monster.x = -heightM
         monster.y = 0
 
-
         monster.setBounds(monster.x, monster.y, widthM, heightM)
-        monsters.push(monster)
+        arrMonsters.push(monster)
+        stage.addChild(monster);
 
         for (let i = 1; i < 6; i++) {
-            var monsterClone = monsters[monsters.length - 1].clone();
-            monsterClone.x = monsters[monsters.length - 1].x + widthM
+            var monsterClone = arrMonsters[arrMonsters.length - 1].clone();
+            monsterClone.x = arrMonsters[arrMonsters.length - 1].x + widthM
             monsterClone.y = monster.y
             monsterClone.setBounds(monsterClone.x, monsterClone.y, widthM, heightM)
-            monsters.push(monsterClone)
+            arrMonsters.push(monsterClone)
+            stage.addChild(monsterClone);
         }
-        containerMonsters = new createjs.Container();
-        monsters.forEach(monster => {
-            containerMonsters.addChild(monster)
-        });
-        stage.addChild(containerMonsters);
+        monsters.push(arrMonsters)
+        // containerMonsters = new createjs.Container();
+        // monsters.forEach(monster => {
+        //     containerMonsters.addChild(monster)
+        // });
+        // stage.addChild(containerMonsters);
         stage.update();
         monsterMove()
     }
@@ -145,59 +192,47 @@ function monsterMove() {
     var calculation = false
     // var range = Math.floor(Math.random() * 50) + 50
     var range = 0
+    monsters.forEach(arrMonsters => {
+        setInterval(function () {
+            if (arrMonsters.length > 0) {
+                var xMax = arrMonsters[arrMonsters.length - 1].x + arrMonsters[arrMonsters.length - 1].getBounds().width
+                var xMin = arrMonsters[0].x
+                // var width = monsters[monsters.length - 1].x - containerMonsters.x
 
-    setInterval(function () {
-        var xMax = monsters[monsters.length - 1].x + monsters[monsters.length - 1].getBounds().width
-        var xMin = monsters[0].x
-        // var width = monsters[monsters.length - 1].x - containerMonsters.x
 
-        if ((widthCV - range) <= (xMax + speed)) calculation = false
-        if ((xMin - speed) <= range) calculation = true
-        console.log('calculation: ' + calculation);
-        calculation ? monsterMoveRight() : monsterMoveLeft()
-        stage.update();
-    }, 20);
-    setInterval(function () {
-        monsters.forEach(monster => {
-            monster.y += speed
-        });
-        stage.update();
-    }, 500);
-
-    // wall.x = 400
-    // wall.y = 600
-
-    // createjs.Tween.get(wall, { loop: -1, reversed: true })
-    //     .to({ x: widthCV - range - wall.getBounds().width }, 1000, createjs.Ease.linear)
-    //     .to({ x: defaultX }, 1000, createjs.Ease.linear)
-    //     .addEventListener("change", handleChange);
-    // function handleChange(event) {
-    //     // console.log(event.target.target.x);
-    // }
-    // createjs.Tween.get(wall)
-    //     .to({ y: wall.y + height }, 100000 / speed, createjs.Ease.linear)
-    //     .addEventListener("change", handleChange);
-    // function handleChange(event) {
-    //     setInterval(
-    //         () => {
-    //             console.log('x: ' + event.target.target.x + '     y: ' + event.target.target.y);
-    //             console.log('  ');
-    //         }, 100);
-    // }
+                if ((widthCV - range) <= (xMax + speed)) calculation = false
+                if ((xMin - speed) <= range) calculation = true
+                calculation ? monsterMoveRight(arrMonsters) : monsterMoveLeft(arrMonsters)
+                stage.update();
+            }
+        }, 20);
+        setInterval(function () {
+            if (arrMonsters.length > 0) {
+                arrMonsters.forEach(monster => {
+                    monster.y += speed
+                });
+                if (monsters[monsters.length - 1][monsters[monsters.length - 1].length - 1].y > heightCV / 6) {
+                    exp < 4 ? exp += 1 : exp = 4
+                    createMonster(exp)
+                }
+                stage.update();
+            }
+        }, 500);
+    });
 }
-function monsterMoveLeft() {
-    monsters.forEach(monster => {
+function monsterMoveLeft(arrMonsters) {
+    arrMonsters.forEach(monster => {
         monster.x -= speed
+        checkIntersection(monster)
     });
 }
-function monsterMoveRight() {
-    monsters.forEach(monster => {
+function monsterMoveRight(arrMonsters) {
+    arrMonsters.forEach(monster => {
         monster.x += speed
+        checkIntersection(monster)
+
     });
 }
-
-
-
 
 window.onkeydown = function (e) {
     var kc = e.keyCode;
@@ -211,8 +246,7 @@ window.onkeydown = function (e) {
     checkMove(dx, dy, protagonist)
     move(dx, dy)
     protagonist.setBounds(protagonist.x, protagonist.y, widthP, heightP);
-    checkIntersection()
-    fire()
+
 };
 
 window.onkeyup = function (e) {
@@ -234,7 +268,6 @@ function checkMove(dx, dy, obj) {
 
 function shoot(protagonist) {
     if (arrBullet.length > 0) {
-        console.log('get bullet arr');
         var bullet = arrBullet.pop()
         bullet.x = protagonist.x + protagonist.getBounds().width / 2
         bullet.y = protagonist.y
@@ -242,7 +275,6 @@ function shoot(protagonist) {
         moveBullet(bullet)
     } else {
         createBullet(protagonist)
-        console.log('create new bullet');
     }
 }
 
@@ -279,32 +311,36 @@ function moveBullet(bullet) {
 
 }
 function checkMonsterBullet(bullet) {
-    monsters.forEach(monster => {
-        var impinge = getIndex(monster).intersects(bullet.getBounds())
-        if (impinge) {
-            monsterDie(monster)
-            bulletDie(bullet)
-        }
+    monsters.forEach(arrMonster => {
+        arrMonster.forEach(monster => {
+            var impinge = getIndex(monster).intersects(bullet.getBounds())
+            if (impinge) {
+                monsterDie(monster)
+                bulletDie(bullet)
+                updateScores()
+            }
+        });
     });
 
 
 }
 
 function monsterDie(monster) {
-    monsters.splice(monsters.indexOf(monster), 1);
-    containerMonsters.removeChild(monster);
-    if (monsters.length == 0) stage.removeChild(containerMonsters)
-
-
+    for (let index = 0; index < monsters.length; index++) {
+        monsters[index].splice(monsters[index].indexOf(monster), 1);
+        stage.removeChild(monster)
+        if (monsters[index].length == 0) {
+            monsters.splice(index, 1);
+            exp < 4 ? exp += 1 : exp = 4
+            createMonster(exp)
+        }
+    }
 }
 function bulletDie(obj) {
-    console.log('call die');
     obj.x = widthCV + obj.getBounds().width * 2
     obj.y = heightCV
     obj.alpha = 0
     arrBullet.push(obj)
-    console.log('arrBullet.length ');
-    console.log(arrBullet.length);
 }
 
 
@@ -319,35 +355,57 @@ function move(dx, dy) {
     stage.update();
 }
 
-function checkIntersection() {
-    monsters.forEach(monster => {
-        var impinge = getIndex(monster).intersects(protagonist.getBounds())
-        if (impinge == true && immortal == false) {
-            console.log('trừ mạng');
-            monsterDie(monster)
-            immortal = true
-            life -= 1
-            var tween1 = createjs.Tween.get(protagonist, { loop: -1, reversed: true })
-                .to({ alpha: 0 }, 100, createjs.Ease.linear)
-                .to({ alpha: 1 }, 100, createjs.Ease.linear)
-            setTimeout(
-                function () {
-                    immortal = false
-                    tween1.setPaused(true);
-                }, 3000);
-        }
-    });
-}
-
-var myVar = setInterval(function () { console.log(life); }, 3000);
-function fire() {
-    if (life < 0) {
-        clearInterval(myVar);
-        console.log('hết mạng')
+function checkIntersection(monster) {
+    var impinge = getIndex(monster).intersects(protagonist.getBounds())
+    if (impinge == true && immortal == false) {
+        monsterDie(monster)
+        immortal = true
+        updateLife()
+        var tween1 = createjs.Tween.get(protagonist, { loop: -1, reversed: true })
+            .to({ alpha: 0 }, 100, createjs.Ease.linear)
+            .to({ alpha: 1 }, 100, createjs.Ease.linear)
+        setTimeout(
+            function () {
+                immortal = false
+                tween1.setPaused(true);
+            }, 3000);
     }
 }
+function updateLife() {
+    life -= 1
+    if (life < 0) {
+        alert("Hết mạng")
+    }
+    stage.removeChild(life_Text)
+    life_Text = new createjs.Text(life, "20px Arial", "#ff7700");
+    life_Text.x = 30;
+    life_Text.y = 20
+    stage.addChild(life_Text);
+    stage.update();
+}
+function updateScores() {
+    scores += 1
+    stage.removeChild(scores_Text)
+    scores_Text = new createjs.Text('Scores: ' + scores, "20px Arial", "#ff7700");
+    scores_Text.x = widthCV - 100;
+    scores_Text.y = 20
+    stage.addChild(scores_Text);
+    stage.update();
+}
 
 
+// var a = [
+//     [1,2,3],
+//     [],
+//     [4,5,6],
+//     [7,8,9]
+// ]
+// a.forEach(element => {
+//     console.log(element);
+// });
 
-
-
+// a.splice(1, 1);
+// console.log(a.indexOf([1,2,3]));
+// a.forEach(element => {
+//     console.log(element);
+// });
