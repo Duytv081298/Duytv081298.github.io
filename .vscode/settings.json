@@ -12,5 +12,6 @@
         "shellscript",
         "sql"
     ],
-    "cSpell.language": "en,en-GB"
+    "cSpell.language": "en,en-GB",
+    "liveServer.settings.port": 5501
 }

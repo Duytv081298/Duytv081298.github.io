@@ -1,3 +1,4 @@
+
 var width = window.innerWidth
     || document.documentElement.clientWidth
     || document.body.clientWidth;
@@ -15,6 +16,8 @@ var Keys = {
     left: false,
     right: false
 };
+
+var canvas
 var stage
 
 
@@ -32,21 +35,57 @@ var player, widthP, heightP
 
 var arrBullet = [], startShoot, widthB, heightB
 
+
+var imgSeq = new Image();       // The image for the sparkle animation
+var sprite;
+
+var fader;
+var spkls;                      // Container for all the sparkles
+
 function init() {
 
     createjs.CSSPlugin.install();
     createjs.RotationPlugin.install();
     createjs.MotionGuidePlugin.install(createjs.Tween);
-    createjs.Ticker.timingMode = createjs.Ticker.RAF;
-    createjs.Ticker.addEventListener("tick", tick);
     setStage()
-    setBackground()
 
     creatMonsterT1()
 
     loadSound()
 
     creatPlayer()
+
+    setSparkles()
+
+
+
+}
+
+
+function setSparkles() {
+
+    // setBackground()
+    var data = {
+        images: ["../img/spritesheet_sparkle.png"],
+        frames: {
+            width: 21,
+            height: 23,
+            regX: 10,
+            regY: 11
+        }
+    };
+    // set up an animation instance, which we will clone
+    sprite = new createjs.Sprite(new createjs.SpriteSheet(data));
+    // fader = new createjs.Shape();
+    // stage.addChild(fader);
+    // var gfx = fader.graphics;
+    // gfx.beginFill("rgba(0,0,0, 0.3)").drawRect(0, 0, 1024, 704).endFill();
+    // setBackground()
+    spkls = new createjs.Container();
+    stage.addChild(spkls);
+
+    createjs.Ticker.timingMode = createjs.Ticker.RAF;
+    createjs.Ticker.addEventListener("tick", tick);
 
 }
 
@@ -96,7 +135,7 @@ function testMonster(startX, startY, moveMonster, arr) {
     }
 }
 function setStage() {
-    var canvas = document.getElementById("myCanvas");
+    canvas = document.getElementById("myCanvas");
     console.log(height);
     canvas.height = height
     canvas.width = height / 1.7
@@ -537,19 +576,26 @@ function creatPlayer() {
         player.on("pressmove", function (evt) {
             evt.target.x = evt.stageX - 50;
             evt.target.y = evt.stageY - 50;
-            console.log(evt);
             player.setBounds(evt.stageX - 50, evt.stageX - 50, widthP, heightP);
+            addSparkles((Math.random() * 4 + 2) | 0, stage.mouseX, stage.mouseY, 0.1);
         });
         player.on("pressup", function (evt) {
             clearInterval(startShoot);
-            player.setBounds(evt.stageX - 50, evt.stageX - 50, widthP, heightP);
+            // player.setBounds(evt.stageX - 50, evt.stageX - 50, widthP, heightP);
         });
 
         player.on("mousedown", function (evt) {
+            console.log('mousedown');
             // console.log(evt);
             startShoot = setInterval(
-                shoot, 200);
-            player.setBounds(evt.stageX - 50, evt.stageX - 50, widthP, heightP);
+                () => {
+
+                    addSparkles((Math.random() * 4 + 2) | 0, stage.mouseX, stage.mouseY, 0.1);
+                    // shoot()
+                    createBullet(player)
+                }
+                , 200);
+            // player.setBounds(evt.stageX - 50, evt.stageX - 50, widthP, heightP);
         });
 
         stage.update();
@@ -580,7 +626,6 @@ function createBullet(player) {
         bullet.rotation = -90
         widthB = bullet.image.height * 0.2
         heightB = bullet.image.width * 0.2
-        bullet.setBounds(bullet.x, bullet.y, bullet.image.height * 0.2, bullet.image.width * 0.2)
         stage.addChild(bullet);
         stage.update();
         moveBullet(bullet)
@@ -620,18 +665,27 @@ function checkBulletMove(bullet) {
         }
     }
 }
-function monsterDie(name, arr, monster) {
+async function monsterDie(name, arr, monster) {
+    createjs.Tween.removeTweens(monster);
     console.log(arr.indexOf(monster));
     arr.splice(arr.indexOf(monster), 1)
-    createjs.Tween.removeTweens(monster);
+
+    await addSparkles(Math.random() * 10 + 30 | 0, monster.x, monster.y, 1);
     stage.removeChild(monster)
     checkTurn1()
 }
-function bulletDie(obj) {
-    obj.x = widthCV + widthB
-    obj.y = heightCV
-    obj.alpha = 0
-    arrBullet.push(obj)
+function bulletDie(bullet) {
+
+
+    // bullet.alpha = 0
+    // bullet.x = widthCV + widthB
+    // bullet.y = heightCV
+    bullet.x = -100
+    bullet.y = -100
+    // console.log('bullet die');
+    stage.removeChild(bullet)
+
+    // arrBullet.push(bullet)
 }
 function loadSound() {
     createjs.Sound.alternateExtensions = ["mp3"];
@@ -644,7 +698,7 @@ function loadSound() {
         instance.on("complete", handleComplete, this);
         instance.volume = 100;
     }
-    function handleComplete(){
+    function handleComplete() {
         // console.log("load xong");
     }
 
@@ -692,13 +746,80 @@ function getIndexPlayer() {
     obj.setBounds(x, y, widthP, heightP)
     return obj.getBounds()
 }
-function checkDie(monster){
-    if(getIndexMonster(monster).intersects(getIndexPlayer())){
-        
+function checkDie(monster) {
+    if (getIndexMonster(monster).intersects(getIndexPlayer())) {
+
     }
-    
+
 }
 function tick(event) {
-    rotationBoss++
-    stage.update();
+    // loop through all of the active sparkles on stage:
+    var l = spkls.numChildren;
+    var m = event.delta / 20;
+    for (var i = 0; i < l; i++) {
+        var sparkle = spkls.getChildAt(i);
+
+        if (--sparkle.life <= 0) {
+            spkls.removeChild(sparkle);
+            i--; l--;
+            continue;
+        }
+
+        // apply gravity and friction
+        sparkle.vY += m;
+
+        // update position, scale, and alpha:
+        sparkle.x += sparkle.vX * m;
+        sparkle.y += sparkle.vY * m;
+
+        sparkle.alpha = sparkle.alphaStart * (sparkle.life / sparkle.lifeMax);
+
+        // remove sparkles that are off screen or not invisible
+        if (sparkle.y > canvas.height) {
+            sparkle.vY *= -(Math.random() * 0.1 + 0.8);
+            sparkle.vX += Math.cos(Math.random() * Math.PI * 2) * 3;
+        } else if (sparkle.y < 0) {
+            sparkle.vY *= 0.9;
+        }
+
+        if (sparkle.x > canvas.width || sparkle.x < 0) {
+            sparkle.vX *= -1;
+        }
+    }
+
+    stage.update(event);
 }
+
+function clickCanvas(evt) {
+    addSparkles(Math.random() * 10 + 30 | 0, stage.mouseX, stage.mouseY, 1);
+}
+function addSparkles(count, x, y, speed) {
+    // create the specified number of sparkles
+    for (var i = 0; i < count; i++) {
+        // clone the original sparkle, so we don't need to set shared properties:
+        var sparkle = sprite.clone();
+
+        // set display properties:
+        sparkle.x = x;
+        sparkle.y = y;
+        sparkle.rotation = Math.random() * 360;
+        sparkle.alpha = sparkle.alphaStart = Math.random() * 0.7 + 0.6;
+        sparkle.scale = Math.random() + 0.3;
+
+        sparkle.life = sparkle.lifeMax = Math.random() * 100 + 50;
+
+        // set up velocities:
+        var a = Math.PI * 2 * Math.random();
+        var v = (Math.random() - 0.5) * 30 * speed;
+        sparkle.vX = Math.cos(a) * v;
+        sparkle.vY = Math.sin(a) * v;
+
+        // start the animation on a random frame:
+        sparkle.gotoAndPlay(Math.random() * sparkle.spriteSheet.getNumFrames() | 0);
+
+        // add to the display list:
+        spkls.addChild(sparkle);
+    }
+}
+
+
