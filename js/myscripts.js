@@ -25,12 +25,13 @@ var monsterL = [], monsterR = []
 var monsterTL = [], monsterTR = []
 var monsterBL = [], monsterBR = []
 var monsterSL = [], monsterSR = []
-var turn1 = false, turn2 = false
+var turn1 = false, nextRound = 0, turn2 = false
 var widthM, heightM, exp = 1
 
-var boss, rotationBoss
+var boss, rotationBoss, widthBoss, heightBoss
 
 var player, widthP, heightP
+var life = 3, scores = 0, immortal = false, life_Text, scores_Text
 
 
 var arrBullet = [], startShoot, widthB, heightB
@@ -63,7 +64,6 @@ function init() {
 
 
 function setSparkles() {
-
     // setBackground()
     var data = {
         images: ["../img/spritesheet_sparkle.png"],
@@ -89,51 +89,6 @@ function setSparkles() {
 
 }
 
-function testMonster(startX, startY, moveMonster, arr) {
-    var image = new Image();
-    image.src = "../img/e1.png";
-    var monster
-    image.onload = function () {
-        monster = new createjs.Bitmap(image);
-        monster.scaleX = 0.2;
-        monster.scaleY = 0.2;
-        monster.x = startX
-        monster.y = startY
-        widthM = monster.image.width * monster.scaleX
-        heightM = monster.image.height * monster.scaleY
-        monster.rotation = -90
-        monster.alpha = 0
-        arr.push(monster)
-        stage.addChild(monster);
-        for (let index = 1; index < 6; index++) {
-            var monsterClone = arr[arr.length - 1].clone();
-            monsterClone.x = startX
-            monsterClone.y = startY
-            arr.push(monsterClone)
-            stage.addChild(monsterClone);
-        }
-        moveMonster(arr)
-        // var i = 1
-        // // moveMonster(monster, i, arr)
-        // var move = setInterval(
-        //     function () {
-        //         i += 1
-        //         var monsterClone = arr[arr.length - 1].clone();
-        //         monsterClone.x = startX
-        //         monsterClone.y = startY
-        //         arr.push(monsterClone)
-        //         stage.addChild(monsterClone);
-        //         // moveMonster(monsterClone, i, arr)
-        //         if (arr.length == 6) {
-        //             console.log(arr.length);
-        //             moveMonster(arr)
-        //         }
-        //         if (i == 6) clearInterval(move);
-        //     }, 200);
-
-        stage.update();
-    }
-}
 function setStage() {
     canvas = document.getElementById("myCanvas");
     console.log(height);
@@ -513,6 +468,8 @@ function monsterMoveSidesR() {
 
 function checkTurn1() {
     if (monsterL.length == 0 && monsterR.length == 0 && monsterTL.length == 0 && monsterTR.length == 0) {
+        nextRound += 1
+        console.log(nextRound);
         if (!turn1) creatMonsterT2()
         turn1 = true
     }
@@ -535,14 +492,14 @@ function createBoss() {
         boss.x = stage.canvas.width / 2
         boss.y = stage.canvas.height
 
+        widthBoss = boss.image.height * 1.2
+        heightBoss = boss.image.width * 1.2
+
         boss.regX = (boss.image.width) / 2
         boss.regY = (boss.image.height) / 2
 
         boss.alpha = 0
-
         boss.rotation = 180
-        boss.setBounds(boss.x, boss.y, boss.image.height * 1.2, boss.image.width * 1.2);
-
         stage.addChild(boss);
         stage.update();
 
@@ -560,6 +517,13 @@ function bossMove(boss) {
         )
 }
 function creatPlayer() {
+    life_Text = new createjs.Text(life, "20px Arial", "#ff7700");
+    life_Text.x = 30;
+    life_Text.y = 20
+    scores_Text = new createjs.Text('Scores: ' + scores, "20px Arial", "#ff7700");
+    scores_Text.x = widthCV - 100;
+    scores_Text.y = 20
+    stage.addChild(life_Text, scores_Text);
     var image = new Image();
     image.src = "../img/plane.png";
     image.onload = function () {
@@ -591,10 +555,14 @@ function creatPlayer() {
                 () => {
 
                     addSparkles((Math.random() * 4 + 2) | 0, stage.mouseX, stage.mouseY, 0.1);
+                }
+                , 1000);
+            startShoot = setInterval(
+                () => {
                     // shoot()
                     createBullet(player)
                 }
-                , 200);
+                , 150);
             // player.setBounds(evt.stageX - 50, evt.stageX - 50, widthP, heightP);
         });
 
@@ -635,12 +603,22 @@ function moveBullet(bullet) {
     var moveY = createjs.Tween.get(bullet)
         .to({ y: 0 }, bullet.y / (stage.canvas.height / 1500), createjs.Ease.linear).addEventListener("change", handleChange);
     function handleChange(event) {
-        checkBulletMove(bullet)
-        if (bullet.y <= 0) {
-            bulletDie(bullet)
-            // moveY.setPaused(true);
-            // removeTweens(bullet)
+        if (boss != null) {
+            var impinge = getIndexBoss(boss).intersects(getIndexBullet(bullet))
+            if(impinge){
+                bulletDie(bullet, true)
+                updateScores()
+            }
         }
+        else {
+            checkBulletMove(bullet)
+            if (bullet.y <= 0) {
+                bulletDie(bullet)
+                // moveY.setPaused(true);
+                // removeTweens(bullet)
+            }
+        }
+
     }
 }
 function checkBulletMove(bullet) {
@@ -658,25 +636,38 @@ function checkBulletMove(bullet) {
                 var impinge = getIndexMonster(monster).intersects(getIndexBullet(bullet))
                 if (impinge) {
                     monsterDie(name, arr, monster)
-                    bulletDie(bullet)
-                    // updateScores()
+                    bulletDie(bullet, true)
+                    updateScores()
                 }
             });
         }
     }
 }
-async function monsterDie(name, arr, monster) {
+function updateScores() {
+    scores += 1
+    stage.removeChild(scores_Text)
+    scores_Text = new createjs.Text('Scores: ' + scores, "20px Arial", "#ff7700");
+    scores_Text.x = widthCV - 100;
+    scores_Text.y = 20
+    stage.addChild(scores_Text);
+    stage.update();
+}
+function monsterDie(name, arr, monster) {
     createjs.Tween.removeTweens(monster);
     console.log(arr.indexOf(monster));
     arr.splice(arr.indexOf(monster), 1)
 
-    await addSparkles(Math.random() * 10 + 30 | 0, monster.x, monster.y, 1);
     stage.removeChild(monster)
-    checkTurn1()
+
+    if (nextRound < 6) checkTurn1()
+    else if (nextRound == 6) checkTurn2()
+
 }
-function bulletDie(bullet) {
-
-
+async function bulletDie(bullet, boss) {
+    if( boss ) {
+        
+    await addSparkles(Math.random() * 10 + 30 | 0, bullet.x, bullet.y, 1);
+    }
     // bullet.alpha = 0
     // bullet.x = widthCV + widthB
     // bullet.y = heightCV
@@ -732,7 +723,12 @@ function getIndexMonster(obj) {
     obj.setBounds(x, y, widthM, heightM)
     return obj.getBounds()
 }
-
+function getIndexBoss(boss) {
+    var x = boss.x
+    var y = boss.y
+    boss.setBounds(boss.x-25, boss.y +heightBoss/2 -10, widthBoss/2, 1);
+    return boss.getBounds()
+}
 function getIndexBullet(obj) {
     var x = obj.x
     var y = obj.y
@@ -788,10 +784,6 @@ function tick(event) {
     }
 
     stage.update(event);
-}
-
-function clickCanvas(evt) {
-    addSparkles(Math.random() * 10 + 30 | 0, stage.mouseX, stage.mouseY, 1);
 }
 function addSparkles(count, x, y, speed) {
     // create the specified number of sparkles
