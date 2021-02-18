@@ -29,7 +29,7 @@ var monsterSL = [], monsterSR = []
 var turn1 = false, nextRound = 0, turn2 = false
 var widthM, heightM, exp = 1
 
-var boss, rotationBoss, widthBoss, heightBoss, bossToPlayer, bosslife = 50
+var boss, rotationBoss, widthBoss, heightBoss, bossToPlayer, bosslife = 100
 
 var player, widthP, heightP
 var life = 3, scores = 0, immortal = false, life_Text, scores_Text
