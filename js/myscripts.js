@@ -172,7 +172,7 @@ function createMonster(exp, startX, startY, moveMonster, arr) {
         monster.y = startY
         widthM = monster.image.width * monster.scaleX
         heightM = monster.image.height * monster.scaleY
-        monster.rotation = -90
+        monster.rotation = 180
         monster.alpha = 0
         arr.push(monster)
         stage.addChild(monster);
@@ -220,7 +220,7 @@ function creatMonsterT1() {
     createMonster(1, -widthM, 0, monsterMoveL, monsterL)
     createMonster(1, widthCV + widthM, 0, monsterMoveR, monsterR)
     createMonster(1, stage.canvas.width * 3 / 10, -heightM, monsterMoveTL, monsterTL)
-    createMonster(1, stage.canvas.width * 7 / 10, -heightM, monsterMoveTR, monsterTR)
+    // createMonster(1, stage.canvas.width * 7 / 10, -heightM, monsterMoveTR, monsterTR)
 }
 function monsterMoveL() {
     var i = 0
@@ -230,41 +230,30 @@ function monsterMoveL() {
             if (i == monsterL.length - 1) clearInterval(move1);
             i += 1
         }, 200);
-
     function move(item, index) {
         tween = createjs.Tween.get(item, { bounce: false, loop: false })
-            .to({
-                alpha: 1,
-                guide: {
-                    path: [-50, 0,
-                    stage.canvas.width * 2 / 10, stage.canvas.height * 1 / 10,
-                    stage.canvas.width * 4 / 10, stage.canvas.height * 2 / 10,
-                    stage.canvas.width * 6 / 10, stage.canvas.height * 3 / 10,
-                    stage.canvas.width * 4 / 10, stage.canvas.height * 4 / 10,
-                    stage.canvas.width * 2 / 10, stage.canvas.height * 5 / 10,
-                    -50, stage.canvas.height * 7 / 10], orient: "fixed"
-                }
-            }, 3000)
+            .to({ alpha: 1, }, 1)
             .to({
                 guide: {
                     path: [
-                        -50, stage.canvas.height * 7 / 10,
-                        stage.canvas.width * 2 / 10, stage.canvas.height * 1 / 10,
-                        stage.canvas.width * 5 / 10, stage.canvas.height * 4 / 10,
-                        stage.canvas.width * 7 / 10, stage.canvas.height * 2 / 10,
-                        -50, 0,
-                    ], orient: "fixed"
-                }
-            }, 3000)
-            .to({ x: index * widthM + 100, y: heightM, rotation: -90 }, 1000)
-            .call(() => createjs.Tween.get(item)
-                .wait((6 - index) * 200)
-                .to({ y: stage.canvas.height + heightM }, 13000)
-                .call(() => {
-                    stage.removeChild(item)
-                    monsterL = []
-                    checkTurn1()
-                }))
+                        -50, heightCV * 7 / 10,
+                        widthCV * 2 / 10, heightCV * 1 / 10,
+                        widthCV * 5 / 10, heightCV * 1 / 10,
+                        widthCV * 9 / 10, heightCV * 1 / 10,
+                        widthCV * 5 / 10, heightCV * 4 / 10,
+                        widthCV * 2 / 10, heightCV * 5 / 10,
+                        index * widthM + 100, -heightM * 5.5
+                    ], orient: "auto"
+                },
+            }, 6000)
+            .to({ rotation: 360 }, 1)
+            .wait((6 - index) * 200)
+            .to({ y: stage.canvas.height + heightM }, (heightCV + 5.5 * heightM) / ((heightCV + 5.5 * heightM) / 12000))
+            .call(() => {
+                stage.removeChild(item)
+                monsterL = []
+                checkTurn1()
+            })
             .on("change", checkDie, null, false, { count: 3, index: 3, monster: item });
     }
 }
@@ -279,33 +268,26 @@ function monsterMoveR() {
 
     function move(item, i) {
         tween = createjs.Tween.get(item, { bounce: false, loop: false })
-            .to({
-                alpha: 1,
-                guide: {
-                    path: [stage.canvas.width + 50, 0,
-                    stage.canvas.width * 8 / 10, stage.canvas.height * 1 / 10,
-                    stage.canvas.width * 6 / 10, stage.canvas.height * 2 / 10,
-                    stage.canvas.width * 4 / 10, stage.canvas.height * 3 / 10,
-                    stage.canvas.width * 6 / 10, stage.canvas.height * 4 / 10,
-                    stage.canvas.width * 8 / 10, stage.canvas.height * 5 / 10,
-                    stage.canvas.width + 50, stage.canvas.height * 7 / 10], orient: "fixed"
-                }
-            }, 3000)
+
+            .to({ alpha: 1, rotation: 360 }, 1)
             .to({
                 guide: {
                     path: [
-                        stage.canvas.width + 50, stage.canvas.height * 7 / 10,
-                        stage.canvas.width * 8 / 10, stage.canvas.height * 1 / 10,
-                        stage.canvas.width * 5 / 10, stage.canvas.height * 4 / 10,
-                        stage.canvas.width * 3 / 10, stage.canvas.height * 2 / 10,
-                        stage.canvas.width + 50, stage.canvas.height * 2 / 10,
-                    ], orient: "fixed"
+                        widthCV, 0,
+                        widthCV, heightCV * 4 / 10,
+                        widthCV * 5 / 10, heightCV * 5 / 10,
+                        widthCV * 1 / 10, heightCV * 4.5 / 10,
+                        widthCV * 5 / 10, heightCV * 3 / 10,
+                        widthCV, heightCV * 2 / 10,
+                        i * widthM + 100, - heightM * 4
+                    ], orient: "auto"
                 }
-            }, 3000)
-            .to({ x: i * widthM + 100, y: heightM * 2.5, rotation: -90 }, 1000)
+            }, 6000)
+
+            .to({ rotation: 360 }, 1)
             .call(() => createjs.Tween.get(item)
                 .wait((6 - i) * 200)
-                .to({ y: stage.canvas.height + heightM }, 12000)
+                .to({ y: stage.canvas.height + heightM }, (heightCV + 4 * heightM) / ((heightCV + 5.5 * heightM) / 12000))
                 .call(() => {
                     stage.removeChild(item)
                     monsterR = []
@@ -324,22 +306,26 @@ function monsterMoveTL() {
 
     function move(item, i) {
         tween = createjs.Tween.get(item, { bounce: false, loop: false })
+
+            .to({ alpha: 1, rotation: -90 }, 1)
             .to({
-                alpha: 1,
                 guide: {
-                    path: [stage.canvas.width * 3 / 10, -heightM,
-                    stage.canvas.width * 3 / 10, stage.canvas.height * 3 / 10 - 50,
-                    stage.canvas.width * 3 / 10 - 50, stage.canvas.height * 3 / 10,
-                    -50, stage.canvas.height * 3 / 10,
-                    stage.canvas.width * 3 / 10, -heightM,
-                    ], orient: "fixed"
+                    path: [
+                        widthCV * 7 / 10 , 0,
+                        widthCV * 7 / 10, stage.canvas.height * 7 / 10,
+                        widthCV * 3 / 10, stage.canvas.height * 3 / 10,
+                        widthCV * 3 / 10, stage.canvas.height * 1 / 10,
+
+                    // stage.canvas.width * 3 / 10, -heightM,
+                    i * widthM + 100, - heightM * 2.5,
+                    ], orient: "auto"
                 }
             }, 3000)
+            .to({ rotation: 360 }, 1)
             .wait(3000)
-            .to({ x: i * widthM + 100, y: heightM * 4, rotation: -90 }, 1000)
             .call(() => createjs.Tween.get(item)
                 .wait((6 - i) * 200)
-                .to({ y: stage.canvas.height + heightM }, 11000)
+                .to({ y: stage.canvas.height + heightM }, (heightCV + 2.5 * heightM) / ((heightCV + 5.5 * heightM) / 12000))
                 .call(() => {
                     stage.removeChild(item)
                     monsterTL = []
@@ -367,7 +353,7 @@ function monsterMoveTR() {
                     stage.canvas.width * 6 / 10 + 50, stage.canvas.height * 3 / 10,
                     stage.canvas.width - 50, stage.canvas.height * 3 / 10,
                     stage.canvas.width * 9 / 10, -heightM * 2,
-                    ], orient: "fixed"
+                    ], orient: "auto"
                 }
             }, 3000)
             .wait(3000)
@@ -384,7 +370,6 @@ function monsterMoveTR() {
     }
 
 }
-
 //turn 2
 function creatMonsterT2() {
     createMonster(2, stage.canvas.width * 3 / 10, stage.canvas.height + heightM, monsterMoveBL, monsterBL)
