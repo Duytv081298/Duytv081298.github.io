@@ -19,6 +19,7 @@ var Keys = {
 
 var canvas
 var stage
+var logo
 
 
 var monsterL = [], monsterR = []
@@ -28,7 +29,7 @@ var monsterSL = [], monsterSR = []
 var turn1 = false, nextRound = 0, turn2 = false
 var widthM, heightM, exp = 1
 
-var boss, rotationBoss, widthBoss, heightBoss
+var boss, rotationBoss, widthBoss, heightBoss, bosslife = 50
 
 var player, widthP, heightP
 var life = 3, scores = 0, immortal = false, life_Text, scores_Text
@@ -38,10 +39,7 @@ var arrBullet = [], startShoot, widthB, heightB
 
 
 var imgSeq = new Image();       // The image for the sparkle animation
-var sprite;
-
-var fader;
-var spkls;                      // Container for all the sparkles
+var sprite, fader, spkls;                      // Container for all the sparkles
 
 function init() {
 
@@ -49,20 +47,88 @@ function init() {
     createjs.RotationPlugin.install();
     createjs.MotionGuidePlugin.install(createjs.Tween);
     setStage()
-
-    creatMonsterT1()
-
     loadSound()
-
-    creatPlayer()
-
-    setSparkles()
+    createLogo()
+    createjs.Ticker.setFPS(60);
+    createjs.Ticker.addEventListener("tick", stage);
 
 
 
 }
 
 
+
+function setStage() {
+    canvas = document.getElementById("myCanvas");
+    console.log(height);
+    canvas.height = height
+    canvas.width = height / 1.7
+    console.log('canvas.height: ' + canvas.height);
+    console.log('canvas.width: ' + canvas.width);
+    stage = new createjs.Stage("myCanvas");
+}
+function createLogo() {
+    var image = new Image();
+    image.src = "../img/logo.png";
+    image.onload = async function () {
+        logo = new createjs.Bitmap(image)
+        logo.scaleX = 0;
+        logo.scaleY = 0;
+        stage.addChild(logo);
+        logo.x = (stage.canvas.width - logo.image.width * logo.scaleX) / 2;
+        logo.y = (stage.canvas.height - logo.image.height * logo.scaleY) / 2;
+        stage.update();
+
+        createjs.Tween.get(logo)
+            .to({ scaleX: 0.5, scaleY: 0.5, x: logo.x / 2, y: logo.y / 2 }, 500, createjs.Ease.linear)
+            .to({ scaleX: 1, scaleY: 1, x: (stage.canvas.width - logo.image.width) / 2, y: logo.y / 2 }, 500, createjs.Ease.linear)
+            .call(
+                () => {
+                    createjs.Tween.get(logo, { loop: -1 })
+                        .to({ alpha: 0 }, 200, createjs.Ease.linear)
+                        .to({ alpha: 1 }, 200, createjs.Ease.linear)
+                });
+    }
+}
+function createStart() {
+    var image = new Image();
+    image.src = "../img/start.png";
+    image.onload = function () {
+        var btnStart = new createjs.Bitmap(image)
+        btnStart.scaleX = 0;
+        btnStart.scaleY = 0;
+        stage.addChild(btnStart);
+        btnStart.x = (stage.canvas.width - btnStart.image.width * btnStart.scaleX) / 2;
+        btnStart.y = (stage.canvas.height - btnStart.image.height * btnStart.scaleY) * 2 / 3;
+        stage.update();
+        btnStart.alpha = 0;
+        createjs.Tween.get(btnStart, { bounce: false, loop: false })
+            .to({ alpha: 1 }, 100)
+        stage.update();
+        createjs.Tween.get(btnStart)
+            .to({ scaleX: 0.5, scaleY: 0.5, x: (stage.canvas.width - btnStart.image.width * 0.5) / 2 }, 500, createjs.Ease.linear)
+            .call(
+                () => {
+                    createjs.Tween.get(btnStart, { loop: -1 })
+                        .to({ alpha: 0 }, 500, createjs.Ease.linear)
+                        .to({ alpha: 1 }, 500, createjs.Ease.linear)
+                });
+        var listener = btnStart.on("click", clickBtn);
+        function clickBtn(evt, data) {
+            btnStart.off("click", listener);
+            stage.removeChild(logo)
+            stage.removeChild(btnStart)
+            createjs.Sound.play("sound");
+            start()
+
+        }
+    }
+}
+function start() {
+    creatMonsterT1()
+    creatPlayer()
+    setSparkles()
+}
 function setSparkles() {
     // setBackground()
     var data = {
@@ -76,10 +142,10 @@ function setSparkles() {
     };
     // set up an animation instance, which we will clone
     sprite = new createjs.Sprite(new createjs.SpriteSheet(data));
-    // fader = new createjs.Shape();
-    // stage.addChild(fader);
-    // var gfx = fader.graphics;
-    // gfx.beginFill("rgba(0,0,0, 0.3)").drawRect(0, 0, 1024, 704).endFill();
+    fader = new createjs.Shape();
+    stage.addChild(fader);
+    var gfx = fader.graphics;
+    gfx.beginFill("rgba(0,0,0, 0.3)").drawRect(0, 0, widthCV, heightCV).endFill();
     // setBackground()
     spkls = new createjs.Container();
     stage.addChild(spkls);
@@ -87,16 +153,6 @@ function setSparkles() {
     createjs.Ticker.timingMode = createjs.Ticker.RAF;
     createjs.Ticker.addEventListener("tick", tick);
 
-}
-
-function setStage() {
-    canvas = document.getElementById("myCanvas");
-    console.log(height);
-    canvas.height = height
-    canvas.width = height / 1.7
-    console.log('canvas.height: ' + canvas.height);
-    console.log('canvas.width: ' + canvas.width);
-    stage = new createjs.Stage("myCanvas");
 }
 function setBackground() {
     var image = new Image();
@@ -214,6 +270,7 @@ function monsterMoveL() {
                     monsterL = []
                     checkTurn1()
                 }))
+            .on("change", checkDie, null, false, { count: 3, index: 3, monster: item });
     }
 }
 function monsterMoveR() {
@@ -469,7 +526,6 @@ function monsterMoveSidesR() {
 function checkTurn1() {
     if (monsterL.length == 0 && monsterR.length == 0 && monsterTL.length == 0 && monsterTR.length == 0) {
         nextRound += 1
-        console.log(nextRound);
         if (!turn1) creatMonsterT2()
         turn1 = true
     }
@@ -549,7 +605,6 @@ function creatPlayer() {
         });
 
         player.on("mousedown", function (evt) {
-            console.log('mousedown');
             // console.log(evt);
             startShoot = setInterval(
                 () => {
@@ -586,6 +641,7 @@ function createBullet(player) {
     var image = new Image();
     image.src = "../img/bullet.png";
     image.onload = function () {
+        createjs.Sound.play("shoot");
         var bullet = new createjs.Bitmap(image);
         bullet.scaleX = 0.2;
         bullet.scaleY = 0.2;
@@ -602,10 +658,18 @@ function createBullet(player) {
 function moveBullet(bullet) {
     var moveY = createjs.Tween.get(bullet)
         .to({ y: 0 }, bullet.y / (stage.canvas.height / 1500), createjs.Ease.linear).addEventListener("change", handleChange);
-    function handleChange(event) {
+    async function handleChange(event) {
         if (boss != null) {
             var impinge = getIndexBoss(boss).intersects(getIndexBullet(bullet))
-            if(impinge){
+            if (impinge) {
+                bosslife -= 1
+                if (bosslife <= 0) {
+                    await die()
+                    setInstall()
+                    boss.y = -300
+                    stage.removeChild(boss)
+
+                }
                 bulletDie(bullet, true)
                 updateScores()
             }
@@ -618,7 +682,12 @@ function moveBullet(bullet) {
                 // removeTweens(bullet)
             }
         }
-
+    }
+    function die() {
+        addSparkles(Math.random() * 10 + 500 | 0, boss.x, boss.y, 1.5);
+        addSparkles(Math.random() * 10 + 500 | 0, boss.x + widthBoss / 2, boss.y, 1.5);
+        addSparkles(Math.random() * 10 + 500 | 0, boss.x + widthBoss / 2, boss.y + heightBoss / 2, 1.5);
+        addSparkles(Math.random() * 10 + 500 | 0, boss.x, boss.y + heightBoss / 2, 1.5);
     }
 }
 function checkBulletMove(bullet) {
@@ -654,69 +723,40 @@ function updateScores() {
 }
 function monsterDie(name, arr, monster) {
     createjs.Tween.removeTweens(monster);
-    console.log(arr.indexOf(monster));
     arr.splice(arr.indexOf(monster), 1)
 
     stage.removeChild(monster)
+    createjs.Sound.play("explosion");
 
     if (nextRound < 6) checkTurn1()
     else if (nextRound == 6) checkTurn2()
 
 }
 async function bulletDie(bullet, boss) {
-    if( boss ) {
-        
-    await addSparkles(Math.random() * 10 + 30 | 0, bullet.x, bullet.y, 1);
+    if (boss) {
+
+        await addSparkles(Math.random() * 10 + 30 | 0, bullet.x, bullet.y, 1);
     }
-    // bullet.alpha = 0
-    // bullet.x = widthCV + widthB
-    // bullet.y = heightCV
     bullet.x = -100
     bullet.y = -100
-    // console.log('bullet die');
     stage.removeChild(bullet)
-
-    // arrBullet.push(bullet)
 }
 function loadSound() {
+    createjs.Sound.removeAllSounds();
+    var queue = new createjs.LoadQueue();
     createjs.Sound.alternateExtensions = ["mp3"];
-    createjs.Sound.on("fileload", loadHandler, this);
-    createjs.Sound.registerSound("../sound/beatCut.mp3", "sound");
+    queue.installPlugin(createjs.Sound);
+
+    queue.on("complete", loadHandler);
+    queue.loadManifest([{ id: "sound", src: "../sound/beatCut.mp3" },
+    { id: "explosion", src: "../sound/explosion.mp3" },
+    { id: "shoot", src: "../sound/shoot.mp3" },
+    ]);
     function loadHandler(event) {
-        // This is fired for each sound that is registered.
-        console.log('load xong');
-        var instance = createjs.Sound.play("sound");
-        instance.on("complete", handleComplete, this);
-        instance.volume = 100;
+        console.log('finished downloading music');
+        createStart()
     }
-    function handleComplete() {
-        // console.log("load xong");
-    }
-
-    // createjs.Sound.initializeDefaultPlugins();
-    // var assetsPath = "../sound/";
-    // var sounds = [{
-    //     src: "MyAudioSprite.ogg", data: {
-    //         audioSprite: [
-    //             { id: "beatCut", startTime: 0, duration: 500 },
-    //             { id: "beat2Cut", startTime: 1000, duration: 400 }
-    //         ]
-    //     }
-    // }
-    // ];
-    // createjs.Sound.alternateExtensions = ["mp3"];
-    // createjs.Sound.on("fileload", loadHandler);
-    // createjs.Sound.registerSounds(sounds, assetsPath);
-    // // after load is complete
-    // function loadHandler(event) {
-    //     // This is fired for each sound that is registered.
-    //     var instance = createjs.Sound.play("beatCut");  // play using id.  Could also use full sourcepath or event.src.
-    //     // instance.on("complete", handleComplete, this);
-    //     instance.volume = 100;
-    // }
-    // // createjs.Sound.play("sound2");
 }
-
 function getIndexMonster(obj) {
     var x = obj.x
     var y = obj.y
@@ -726,7 +766,7 @@ function getIndexMonster(obj) {
 function getIndexBoss(boss) {
     var x = boss.x
     var y = boss.y
-    boss.setBounds(boss.x-25, boss.y +heightBoss/2 -10, widthBoss/2, 1);
+    boss.setBounds(boss.x - 25, boss.y + heightBoss / 2 - 10, widthBoss / 2, 1);
     return boss.getBounds()
 }
 function getIndexBullet(obj) {
@@ -735,18 +775,11 @@ function getIndexBullet(obj) {
     obj.setBounds(x, y, widthM, heightB)
     return obj.getBounds()
 }
-
 function getIndexPlayer() {
     var x = player.x
     var y = player.y
-    obj.setBounds(x, y, widthP, heightP)
-    return obj.getBounds()
-}
-function checkDie(monster) {
-    if (getIndexMonster(monster).intersects(getIndexPlayer())) {
-
-    }
-
+    player.setBounds(x, y, widthP, heightP)
+    return player.getBounds()
 }
 function tick(event) {
     // loop through all of the active sparkles on stage:
@@ -813,5 +846,28 @@ function addSparkles(count, x, y, speed) {
         spkls.addChild(sparkle);
     }
 }
-
-
+function checkDie(evt, data) {
+    data.count -= 1;
+    if (data.count == 0) {
+        console.log(data.monster);
+        // alternately: evt.remove();
+    }
+}
+function setInstall() {
+    var image = new Image();
+    image.src = "../img/btn_install.png";
+    image.onload = function () {
+        var btnInstal = new createjs.Bitmap(image)
+        btnInstal.scaleX = 0.7;
+        btnInstal.scaleY = 0.7;
+        stage.addChild(btnInstal);
+        btnInstal.x = (stage.canvas.width - btnInstal.image.width * 0.7) / 2;
+        btnInstal.y = (stage.canvas.height - btnInstal.image.height * 0.7) / 2;
+        stage.update();
+        var listener = btnInstal.on("click", clickBtn);
+        function clickBtn(evt, data) {
+            btnInstal.off("click", listener);
+            console.log("click install");
+        }
+    }
+}
