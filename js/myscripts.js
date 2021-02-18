@@ -29,7 +29,7 @@ var monsterSL = [], monsterSR = []
 var turn1 = false, nextRound = 0, turn2 = false
 var widthM, heightM, exp = 1
 
-var boss, rotationBoss, widthBoss, heightBoss, bosslife = 50
+var boss, rotationBoss, widthBoss, heightBoss, bossToPlayer, bosslife = 50
 
 var player, widthP, heightP
 var life = 3, scores = 0, immortal = false, life_Text, scores_Text
@@ -51,12 +51,7 @@ function init() {
     createLogo()
     createjs.Ticker.setFPS(60);
     createjs.Ticker.addEventListener("tick", stage);
-
-
-
 }
-
-
 
 function setStage() {
     canvas = document.getElementById("myCanvas");
@@ -562,14 +557,28 @@ function createBoss() {
         bossMove(boss)
     }
 }
-function bossMove(boss) {
-    createjs.Tween.get(boss)
+async function bossMove(boss) {
+    await createjs.Tween.get(boss)
         .to({ y: boss.getBounds().height * 1.5, alpha: 0.5, rotation: 90 }, 2500, createjs.Ease.linear)
         .to({ y: boss.getBounds().height * 2 / 3, alpha: 1, rotation: 0 }, 700, createjs.Ease.linear)
         .play(
             createjs.Tween.get(boss, { paused: true, loop: 2 })
                 .to({ scaleX: 1.5, scaleY: 1.5 }, 500, createjs.Ease.linear)
                 .to({ scaleX: 1.2, scaleY: 1.2 }, 500, createjs.Ease.linear)
+        )
+        .call(
+            () => {
+                setInterval(
+                    () => {
+                        var x = boss.x
+                        var y = boss.y
+                        bossToPlayer = createjs.Tween.get(boss)
+                            .to({ x: player.x, y: player.y }, 3000, createjs.Ease.linear)
+                            .to({ x: x, y: y }, 2000, createjs.Ease.linear)
+                    }
+                    , 7000)
+            }
+
         )
 }
 function creatPlayer() {
@@ -605,20 +614,14 @@ function creatPlayer() {
         });
 
         player.on("mousedown", function (evt) {
-            // console.log(evt);
             startShoot = setInterval(
                 () => {
-
                     addSparkles((Math.random() * 4 + 2) | 0, stage.mouseX, stage.mouseY, 0.1);
                 }
                 , 1000);
             startShoot = setInterval(
-                () => {
-                    // shoot()
-                    createBullet(player)
-                }
+                () => { createBullet(player) }
                 , 150);
-            // player.setBounds(evt.stageX - 50, evt.stageX - 50, widthP, heightP);
         });
 
         stage.update();
@@ -667,7 +670,12 @@ function moveBullet(bullet) {
                     await die()
                     setInstall()
                     boss.y = -300
+
+                    bossToPlayer = null
+
+                    createjs.Tween.removeTweens(boss);
                     stage.removeChild(boss)
+                    boss = null
 
                 }
                 bulletDie(bullet, true)
