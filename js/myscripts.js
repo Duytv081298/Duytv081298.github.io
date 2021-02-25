@@ -15,7 +15,7 @@ var stage = new createjs.Stage("myCanvas");
 
 var canvas
 var containerMain = new createjs.Container();
-stage.addChild(containerMain)
+
 
 var containerLine = new createjs.Container();
 
@@ -43,6 +43,7 @@ async function init() {
     handleResize()
     await getData()
     setStage()
+
     createjs.Ticker.setFPS(60);
     createjs.Ticker.addEventListener("tick", stage);
 }
@@ -51,7 +52,6 @@ async function getData() {
     map = levels.bubbles
     locationArr = setLocationXY()
     await loadImage()
-    setStartLocation()
 }
 // đọc file levels map
 async function getLevel() {
@@ -59,7 +59,6 @@ async function getLevel() {
     await $.getJSON("../data/levels/level_0.json", function (data) {
         map = data
     });
-    console.log(map);
     return map
 }
 //load tất cả các image được sử dụng 
@@ -88,9 +87,11 @@ function handleComplete() {
     bubble.b_Pink = queue.getResult("B_Pink");
     bubble.b_Purple = queue.getResult("B_Purple");
     bubble.b_Cyan = queue.getResult("B_Cyan");
-
+    setBackground()
     renderBubble()
+    setStartLocation()
     setBubble()
+
 }
 //conver từ id đối tượng ra hình ảnh
 function convertIdtoBubble(id) {
@@ -135,6 +136,7 @@ function setStage() {
     containerMain.addChild(fader);
     var gfx = fader.graphics;
     gfx.beginFill("rgba(0,0,0, 0.3)").drawRect(0, 0, widthCV, heightCV).endFill();
+
 }
 function setBackground() {
     var image = new Image();
@@ -145,6 +147,16 @@ function setBackground() {
     bg.scaleY = stage.canvas.height / image.height;
     stage.addChild(bg);
     stage.update();
+
+    // var image = new Image();
+    // image.src = "../data/images/bg1.png";
+    // image.onload = function () {
+    //     var bg = new createjs.Bitmap(image);
+    //     bg.scaleX = stage.canvas.width / image.width;
+    //     bg.scaleY = stage.canvas.height / image.height;
+    //     stage.addChild(bg);
+    //     stage.update();
+    // }
 }
 // khởi tạo bubbles mặc định
 function renderBubble() {
@@ -162,6 +174,7 @@ function renderBubble() {
         locationArr[locationBubble.y][locationBubble.x] = { x: a.x, y: a.y, existing: true, bubble: bubble, color: locationBubble.id, checked: false, checkAlone: false }
     });
     console.log(locationArr);
+    stage.addChild(containerMain)
     updateColor()
 }
 // khởi tọa vòng tròn đỏ
@@ -384,6 +397,7 @@ function bubbleMove() {
         bublesPlayers = []
 
         // bubbleRemove.push({ x: index.x, y: index.y })
+
         removeBubble(aReality.x, aReality.y)
 
         setBubble()
@@ -517,7 +531,7 @@ async function removeBubble(x, y) {
             updateLocationEmpty(i.x, i.y)
         });
         bubbleRemove = []
-        getBubbleAlone()
+        removeBubbleAlone()
     } else {
         bubbleRemove.forEach(i => {
             var a = locationArr[i.y][i.x]
@@ -638,10 +652,6 @@ containerMain.on("mousedown", function (evt) {
 
     roadPrediction(evt.stageX, evt.stageY)
 });
-
-
-
-bubbleAlone = []
 function checkBubbleAlone(x, y) {
     if (x == 0) {
         if (y == 0) {
@@ -713,22 +723,31 @@ function checkBubbleAlone(x, y) {
     function updateCheckAlone(x, y) {
         var a = locationArr[y][x]
         locationArr[y][x] = { x: a.x, y: a.y, existing: a.existing, bubble: a.bubble, color: a.color, checked: false, checkAlone: true }
-        bubbleAlone.push({ x: x, y: y })
         checkBubbleAlone(x, y)
     }
 }
-async function getBubbleAlone(){
+async function getBubbleAlone() {
     var arr = []
     var x = 0, y = 0
     await checkBubbleAlone(0, 0)
     locationArr.forEach(element => {
-        element.forEach(bubble => { 
+        x = 0
+        element.forEach(bubble => {
             if (bubble.checkAlone == false && bubble.existing == true) {
-                arr.push({x : x, y : y })
+                arr.push({ x: x, y: y })
             }
-           x++
+            x++
         });
         y++
     });
     return arr
+}
+async function removeBubbleAlone() {
+    var arr = await getBubbleAlone()
+    arr.forEach(i => {
+        var a = locationArr[i.y][i.x]
+        containerMain.removeChild(a.bubble)
+        a.bubble = null
+        updateLocationEmpty(i.x, i.y)
+    });
 }
