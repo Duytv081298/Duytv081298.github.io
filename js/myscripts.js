@@ -786,7 +786,7 @@ function checkComplete() {
     var complete = true
     game.map.forEach(element => {
         element.forEach(bubble => {
-            if (bubble.existing === true && bubble.y != 0) complete = true
+            if (bubble.existing === true && bubble.y != 0) complete = false
         });
     });
     return complete
