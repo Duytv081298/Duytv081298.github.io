@@ -17,9 +17,10 @@ var queue, game = {
     bubble: {
         width: 110,
         height: 110,
-        currentWidth: width / 10,
-        currentHeight: width / 10,
-        scale: (width / 10) / 110,
+        currentWidth: width / 11,
+        currentHeight: width / 11,
+        scaleX : 1,
+        scaleY : 1,
         color: null
     },
     surplus: 0,
@@ -51,6 +52,11 @@ function setStage() {
     canvas.width = width
     console.log(width + ' : ' + canvas.width);
     console.log(height + ' : ' + canvas.height);
+    game.bubble.currentWidth = canvas.width / 11
+    game.bubble.currentHeight = canvas.width / 11
+    game.bubble.scaleX = ((canvas.width / 9.7)) / 110
+    game.bubble.scaleY = ((canvas.width / 8.9)) / 110
+
 
     stage = new createjs.Stage(canvas);
     stage.mouseMoveOutside = true;
@@ -82,6 +88,7 @@ function loadAnimations() {
 }
 async function getData() {
     game.indexBubbleInlocal = await getLevel()
+    console.log(game.indexBubbleInlocal);
     game.map = setMap()
     await loadImage()
 }
@@ -95,26 +102,36 @@ async function getLevel() {
 }
 //khởi tạo map rỗng
 function setMap() {
-    game.surplus = (game.bubble.currentWidth * 0.9) / 2
+    game.surplus = (game.bubble.currentWidth) / 2
     var locationArr = []
     for (let i = 0; i < stage.canvas.height / game.bubble.currentHeight; i++) {
-        var x = game.bubble.currentWidth * 0.9,
-            y = i * game.bubble.currentHeight * 0.78
+        var x = game.bubble.currentWidth,
+            y = i * game.bubble.currentHeight
         var arr = []
-        for (let j = 0; j < 11; j++) {
-            var xb = j * x
-            if (i % 2 == 0 && y > 1) xb += x / 2
-            arr.push({ x: xb, y: y, existing: false, bubble: null, color: null, checked: false, checkAlone: false })
+
+        if (i == 0 || i > 0 && i % 2 != 0) {
+            for (let j = 0; j < 11; j++) {
+                var xb = j * x
+                arr.push({ x: xb, y: y, existing: false, bubble: null, color: null, checked: false, checkAlone: false })
+            }
+        } else {
+            for (let j = 0; j < 10; j++) {
+                var xb = j * x
+                xb += x / 2
+                arr.push({ x: xb, y: y, existing: false, bubble: null, color: null, checked: false, checkAlone: false })
+            }
         }
+
         locationArr.push(arr)
     }
+    console.log(locationArr);
     return locationArr
 }
 function lToIndex(x, y) {
-    var estimateY = Math.floor(y / (game.bubble.currentHeight * 0.78))
+    var estimateY = Math.floor(y / (game.bubble.currentHeight))
     if (estimateY % 2 == 0 && estimateY > 1) x -= game.surplus
     if (estimateY > 16) estimateY = 16
-    var estimateX = x / (game.bubble.currentWidth * 0.9)
+    var estimateX = x / (game.bubble.currentWidth)
     estimateX = Math.floor(estimateX)
     if (estimateX < 0) estimateX = 0
     if (estimateX > 10) estimateX = 10
@@ -219,8 +236,8 @@ function renderBubble() {
         var image = new Image();
         image = convertIdtoBubble(locationBubble.id)
         var bubble = new createjs.Bitmap(image);
-        bubble.scaleX = game.bubble.scale;
-        bubble.scaleY = game.bubble.scale;
+        bubble.scaleX = game.bubble.scaleX
+        bubble.scaleY = game.bubble.scaleY
         var a = game.map[locationBubble.y][locationBubble.x]
         bubble.x = a.x
         bubble.y = a.y
@@ -239,8 +256,8 @@ function setPlayer() {
     image = convertIdtoBubble(id)
     var bubble = new createjs.Bitmap(image);
 
-    bubble.scaleX = game.bubble.scale;
-    bubble.scaleY = game.bubble.scale;
+    bubble.scaleX = game.bubble.scaleX;
+    bubble.scaleY = game.bubble.scaleY;
 
     bubble.x = stage.canvas.width / 2 - (game.bubble.currentWidth / 2)
     bubble.y = stage.canvas.height * 9 / 10 - game.bubble.currentWidth * 2
@@ -477,56 +494,70 @@ function convertBubbles() {
     game.map[aReality.y][aReality.x] = { x: bubble.x, y: bubble.y, existing: true, bubble: bubble, color: player.currentColor, checked: false, checkAlone: true, vibration: false }
     stage.removeChild(player.bubble)
     player.bubble = null
+    removeBubble(aReality.x, aReality.y)
 
-    vibration(aReality.x, aReality.y)
+    // vibration(aReality.x, aReality.y)
 }
 
 //check va chạm bubble player and bubble mặc định
 function checkBubble(x, y) {
-    if (x == 0) {
-        if (y == 0) {
+    if (y == 0) {
+        if (x == 0) {
             check('Right', x, y)
             check('BottomRight', x, y)
             check('Bottom', x, y)
+        } else if (x == 10) {
+            check('Left', x, y)
+            check('Bottom', x, y)
+            check('BottomLeft', x, y)
         } else {
+            check('Left', x, y)
+            check('Right', x, y)
+            check('BottomRight', x, y)
+            check('Bottom', x, y)
+            check('BottomLeft', x, y)
+        }
+    } else if (y > 0 && y % 2 == 0) {
+        if (x == 0) {
+            check('Top', x, y)
+            check('TopRight', x, y)
+            check('Right', x, y)
+            check('BottomRight', x, y)
+            check('Bottom', x, y)
+        } else if (x == 9) {
+            check('Left', x, y)
+            check('Top', x, y)
+            check('TopRight', x, y)
+            check('Bottom', x, y)
+            check('BottomLeft', x, y)
+        } else {
+
+            check('Left', x, y)
             check('Top', x, y)
             check('TopRight', x, y)
             check('Right', x, y)
             check('BottomRight', x, y)
             check('Bottom', x, y)
         }
-
-    } else if (x == 10) {
-        if (y == 0) {
-            check('Left', x, y)
+    } else {
+        if (x == 0) {
+            check('Top', x, y)
+            check('Right', x, y)
             check('Bottom', x, y)
+        } else if (x == 10) {
+            check('Left', x, y)
+            check('TopLeft', x, y)
             check('BottomLeft', x, y)
         } else {
             check('Left', x, y)
             check('TopLeft', x, y)
             check('Top', x, y)
+            check('Right', x, y)
             check('Bottom', x, y)
             check('BottomLeft', x, y)
         }
-
-    } else if (y == 0) {
-        check('Left', x, y)
-        check('Right', x, y)
-        check('BottomRight', x, y)
-        check('Bottom', x, y)
-        check('BottomLeft', x, y)
-    } else {
-        check('Left', x, y)
-        check('TopLeft', x, y)
-        check('Top', x, y)
-        check('TopRight', x, y)
-        check('Right', x, y)
-        check('BottomRight', x, y)
-        check('Bottom', x, y)
-        check('BottomLeft', x, y)
     }
 }
-
 function check(direction, x, y) {
     var index = renderXY(direction, x, y)
     if (game.map[index.y][index.x].existing == true) {
@@ -648,47 +679,61 @@ function convertAnimations(color) {
 
 
 function checkBubbleAlone(x, y) {
-    if (x == 0) {
-        if (y == 0) {
+    if (y == 0) {
+        if (x == 0) {
             checkAlone('Right', x, y)
             checkAlone('BottomRight', x, y)
             checkAlone('Bottom', x, y)
+        } else if (x == 10) {
+            checkAlone('Left', x, y)
+            checkAlone('Bottom', x, y)
+            checkAlone('BottomLeft', x, y)
         } else {
+            checkAlone('Left', x, y)
+            checkAlone('Right', x, y)
+            checkAlone('BottomRight', x, y)
+            checkAlone('Bottom', x, y)
+            checkAlone('BottomLeft', x, y)
+        }
+    } else if (y > 0 && y % 2 == 0) {
+        if (x == 0) {
+            checkAlone('Top', x, y)
+            checkAlone('TopRight', x, y)
+            checkAlone('Right', x, y)
+            checkAlone('BottomRight', x, y)
+            checkAlone('Bottom', x, y)
+        } else if (x == 9) {
+            checkAlone('Left', x, y)
+            checkAlone('Top', x, y)
+            checkAlone('TopRight', x, y)
+            checkAlone('Bottom', x, y)
+            checkAlone('BottomLeft', x, y)
+        } else {
+
+            checkAlone('Left', x, y)
             checkAlone('Top', x, y)
             checkAlone('TopRight', x, y)
             checkAlone('Right', x, y)
             checkAlone('BottomRight', x, y)
             checkAlone('Bottom', x, y)
         }
-
-    } else if (x == 10) {
-        if (y == 0) {
-            checkAlone('Left', x, y)
+    } else {
+        if (x == 0) {
+            checkAlone('Top', x, y)
+            checkAlone('Right', x, y)
             checkAlone('Bottom', x, y)
+        } else if (x == 10) {
+            checkAlone('Left', x, y)
+            checkAlone('TopLeft', x, y)
             checkAlone('BottomLeft', x, y)
         } else {
             checkAlone('Left', x, y)
             checkAlone('TopLeft', x, y)
             checkAlone('Top', x, y)
+            checkAlone('Right', x, y)
             checkAlone('Bottom', x, y)
             checkAlone('BottomLeft', x, y)
         }
-
-    } else if (y == 0) {
-        checkAlone('Left', x, y)
-        checkAlone('Right', x, y)
-        checkAlone('BottomRight', x, y)
-        checkAlone('Bottom', x, y)
-        checkAlone('BottomLeft', x, y)
-    } else {
-        checkAlone('Left', x, y)
-        checkAlone('TopLeft', x, y)
-        checkAlone('Top', x, y)
-        checkAlone('TopRight', x, y)
-        checkAlone('Right', x, y)
-        checkAlone('BottomRight', x, y)
-        checkAlone('Bottom', x, y)
-        checkAlone('BottomLeft', x, y)
     }
 
     function checkAlone(direction, x, y) {
@@ -927,6 +972,8 @@ function limitAngle(mouseangle) {
     if (mouseangle < lbound || mouseangle >= 270) mouseangle = lbound
     return mouseangle
 }
+
+
 
 
 
