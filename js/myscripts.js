@@ -17,10 +17,11 @@ var queue, game = {
     bubble: {
         width: 110,
         height: 110,
-        currentWidth: width / 11,
-        currentHeight: width / 11,
-        scaleX : 1,
-        scaleY : 1,
+        currentWidth: 0,
+        currentHeight: 0,
+        leftoverX: 0,
+        leftoverY: 0,
+        scale: 0,
         color: null
     },
     surplus: 0,
@@ -39,23 +40,21 @@ var containerMain = new createjs.Container();
 
 // Hàm khởi tạo
 async function init() {
-    setStage()
+
+    await setStage()
+
+    game.map = setMap()
     loadAnimations()
     getData()
     createjs.Ticker.framerate = 60
     createjs.Ticker.addEventListener("tick", tick);
+
 }
 
 function setStage() {
     canvas = document.getElementById("myCanvas");
     canvas.height = height
     canvas.width = width
-    console.log(width + ' : ' + canvas.width);
-    console.log(height + ' : ' + canvas.height);
-    game.bubble.currentWidth = canvas.width / 11
-    game.bubble.currentHeight = canvas.width / 11
-    game.bubble.scaleX = ((canvas.width / 9.7)) / 110
-    game.bubble.scaleY = ((canvas.width / 8.9)) / 110
 
 
     stage = new createjs.Stage(canvas);
@@ -69,6 +68,12 @@ function setStage() {
         canvas.addEventListener("mousemove", onPressMove);
         canvas.addEventListener("mouseup", onMouseUp);
     }
+
+    console.log(width + ' : ' + stage.canvas.width);
+    console.log(height + ' : ' + stage.canvas.height);
+    game.bubble.currentWidth = stage.canvas.width / 11
+    game.bubble.currentHeight = stage.canvas.width / 11
+    game.bubble.scale = (stage.canvas.width / 11) / 110 * 1.1
 }
 function loadAnimations() {
     spriteBubbles = new createjs.SpriteSheet({
@@ -88,8 +93,6 @@ function loadAnimations() {
 }
 async function getData() {
     game.indexBubbleInlocal = await getLevel()
-    console.log(game.indexBubbleInlocal);
-    game.map = setMap()
     await loadImage()
 }
 // đọc file levels map
@@ -102,11 +105,12 @@ async function getLevel() {
 }
 //khởi tạo map rỗng
 function setMap() {
-    game.surplus = (game.bubble.currentWidth) / 2
+    game.bubble.leftoverX = (game.bubble.width * game.bubble.scale - game.bubble.currentWidth) / 2
+    game.bubble.leftoverY = (game.bubble.width * game.bubble.scale - game.bubble.currentHeight * 0.87) / 2
     var locationArr = []
     for (let i = 0; i < stage.canvas.height / game.bubble.currentHeight; i++) {
         var x = game.bubble.currentWidth,
-            y = i * game.bubble.currentHeight
+            y = i * game.bubble.currentHeight * 0.87
         var arr = []
 
         if (i == 0 || i > 0 && i % 2 != 0) {
@@ -124,19 +128,24 @@ function setMap() {
 
         locationArr.push(arr)
     }
-    console.log(locationArr);
+    game.surplus = (game.bubble.currentWidth) / 2
+    game.bubble.currentWidth = game.bubble.width * game.bubble.scale - game.bubble.leftoverX * 2
+    game.bubble.currentHeight = game.bubble.height * game.bubble.scale - game.bubble.leftoverY * 2
     return locationArr
 }
 function lToIndex(x, y) {
     var estimateY = Math.floor(y / (game.bubble.currentHeight))
     if (estimateY % 2 == 0 && estimateY > 1) x -= game.surplus
-    if (estimateY > 16) estimateY = 16
-    var estimateX = x / (game.bubble.currentWidth)
-    estimateX = Math.floor(estimateX)
+    if (estimateY > 18) estimateY = 18
+    var estimateX = Math.floor(x / (game.bubble.currentWidth) + 0.00000000000001)
     if (estimateX < 0) estimateX = 0
     if (estimateX > 10) estimateX = 10
+    if (estimateY % 2 == 0 && estimateY > 1 && estimateX > 9) estimateX = 9
     return ({ x: estimateX, y: estimateY })
 }
+
+
+
 //load tất cả các image được sử dụng 
 async function loadImage() {
     queue = new createjs.LoadQueue(true, '../data/images/');
@@ -195,7 +204,6 @@ function setBackground() {
     bg.scaleX = stage.canvas.width / image.width;
     bg.scaleY = stage.canvas.height / image.height;
     stage.addChild(bg);
-    stage.update();
 }
 function setDinosaursAndBird() {
     var image = new Image();
@@ -236,8 +244,9 @@ function renderBubble() {
         var image = new Image();
         image = convertIdtoBubble(locationBubble.id)
         var bubble = new createjs.Bitmap(image);
-        bubble.scaleX = game.bubble.scaleX
-        bubble.scaleY = game.bubble.scaleY
+
+        bubble.scaleX = game.bubble.scale;
+        bubble.scaleY = game.bubble.scale;
         var a = game.map[locationBubble.y][locationBubble.x]
         bubble.x = a.x
         bubble.y = a.y
@@ -256,8 +265,8 @@ function setPlayer() {
     image = convertIdtoBubble(id)
     var bubble = new createjs.Bitmap(image);
 
-    bubble.scaleX = game.bubble.scaleX;
-    bubble.scaleY = game.bubble.scaleY;
+    bubble.scaleX = game.bubble.scale;
+    bubble.scaleY = game.bubble.scale;
 
     bubble.x = stage.canvas.width / 2 - (game.bubble.currentWidth / 2)
     bubble.y = stage.canvas.height * 9 / 10 - game.bubble.currentWidth * 2
@@ -367,7 +376,7 @@ function renderDotLine() {
         setCheck()
     }
     function checkEndLine(x, y) {
-        if (y > 0 && x > game.surplus) {
+        if (y >= 0) {
             var index = lToIndex(x, y)
             return map[index.y][index.x].existing
         }
@@ -379,7 +388,6 @@ function renderDotLine() {
     destinations = removeDuplicates(a)
     destinations.push(dotLineArr[dotLineArr.length - 1])
     destinations = toReality(destinations)
-
     stage.addChild(containerLine)
 
 }
@@ -441,8 +449,6 @@ function onMouseDown(evt) {
     pressMove = true
     var location = currentMouse(evt)
     player.angle = limitAngle(radToDeg(location.x - player.x, location.y - player.y) + 180)
-
-
 }
 function onPressMove(evt) {
     if (pressMove) {
@@ -491,12 +497,13 @@ function convertBubbles() {
     containerMain.addChild(bubble)
 
     var aReality = lToIndex(bubble.x, bubble.y)
-    game.map[aReality.y][aReality.x] = { x: bubble.x, y: bubble.y, existing: true, bubble: bubble, color: player.currentColor, checked: false, checkAlone: true, vibration: false }
+    var loacaton = game.map[aReality.y][aReality.x]
+    game.map[aReality.y][aReality.x] = { x: loacaton.x, y: loacaton.y, existing: true, bubble: bubble, color: player.currentColor, checked: false, checkAlone: true, vibration: false }
     stage.removeChild(player.bubble)
     player.bubble = null
-    removeBubble(aReality.x, aReality.y)
+    // removeBubble(aReality.x, aReality.y)
 
-    // vibration(aReality.x, aReality.y)
+    vibration(aReality.x, aReality.y)
 }
 
 //check va chạm bubble player and bubble mặc định
@@ -531,7 +538,6 @@ function checkBubble(x, y) {
             check('Bottom', x, y)
             check('BottomLeft', x, y)
         } else {
-
             check('Left', x, y)
             check('Top', x, y)
             check('TopRight', x, y)
@@ -827,118 +833,104 @@ function checkComplete() {
     return complete
 }
 
+
+
 async function vibration(x, y) {
     var arr = []
     var a = x, b = y
-    var arr = await setVibration(x, y)
+    console.log(x + ' , ' + y);
+
+    await setVibration(x, y)
     var arr1 = delaminations(x, y, 1)
     var arr2 = delaminations(x, y, 2)
     var arr3 = delaminations(x, y, 3)
 
-    arr1.forEach(element => {
-        var bubbles = game.map[element.y][element.x]
-        createjs.Tween.get(bubbles.bubble)
-            .to({ y: bubbles.bubble.y - 5 }, 100)
-            .to({ y: bubbles.bubble.y }, 100)
-        // containerMain.removeChild(element.bubble)
-    });
-    setTimeout(function () {
-        arr2.forEach(element => {
+    await moveVibration(arr1, 6, 1)
+    await moveVibration(arr2, 4, 2)
+    await moveVibration(arr3, 2, 3)
 
+    function moveVibration(arr, side, turn) {
+        arr.forEach(element => {
             var bubbles = game.map[element.y][element.x]
+            var oldx = bubbles.x
+            var oldy = bubbles.y
+            var index = game.map[y][x]
+
+            console.log(element.x + ' , ' + element.y);
+            var newIndex = setMove(index.x, index.y, oldx, oldy, side)
             createjs.Tween.get(bubbles.bubble)
-                .to({ y: bubbles.bubble.y - 5 }, 100)
-                .to({ y: bubbles.bubble.y }, 100)
-            // containerMain.removeChild(element.bubble)
+                .to({ x: newIndex.x, y: newIndex.y }, 100)
+                .to({ x: oldx, y: oldy }, 100)
+                .call(() => { if (turn == 3) { removeBubble(x, y) } })
         });
     }
-        , 200);
-    setTimeout(function () {
-        arr3.forEach(element => {
-
-            var bubbles = game.map[element.y][element.x]
-            createjs.Tween.get(bubbles.bubble)
-                .to({ y: bubbles.bubble.y - 5 }, 100)
-                .to({ y: bubbles.bubble.y }, 100)
-            // containerMain.removeChild(element.bubble)
-        });
-    }
-        , 400);
-    setTimeout(function () {
-        removeBubble(x, y)
-    }
-        , 600);
     function setVibration(x, y) {
         if (x < a + 3 && y < b + 3 && x > a - 3 && y > b - 3) {
             x = x - 1 < 0 ? 1 : x
             x = x + 1 > 10 ? 9 : x
             y = y - 1 < 0 ? 1 : y
             y = y + 1 > 22 ? 21 : y
-            if (game.map[y][x - 1].vibration == false) {
-                setBubblesVibration(x - 1, y, true)
-                if (game.map[y][x - 1].existing == true) {
-                    arr.push({ x: x - 1, y: y });
+            if (y == 0) {
+                checkVibration('Bottom', x, y)
+                if (x == 0) {
+                    checkVibration('Right', x, y)
+                    checkVibration('BottomRight', x, y)
+                } else if (x == 10) {
+                    checkVibration('Left', x, y)
+                    checkVibration('BottomLeft', x, y)
+                } else {
+                    checkVibration('Left', x, y)
+                    checkVibration('Right', x, y)
+                    checkVibration('BottomRight', x, y)
+                    checkVibration('BottomLeft', x, y)
                 }
-                setVibration(x - 1, y)
-            }
-            if (game.map[y - 1][x - 1].vibration == false) {
-                setBubblesVibration(x - 1, y - 1, true)
-                if (game.map[y - 1][x - 1].existing == true) {
-                    arr.push({ x: x - 1, y: y - 1 });
+            } else if (y > 0 && y % 2 == 0) {
+                checkVibration('Top', x, y)
+                checkVibration('TopRight', x, y)
+                checkVibration('Bottom', x, y)
+                if (x == 0) {
+                    checkVibration('Right', x, y)
+                } else if (x == 9) {
+                    checkVibration('Left', x, y)
+                    checkVibration('BottomLeft', x, y)
+                } else {
+                    checkVibration('Left', x, y)
+                    checkVibration('Right', x, y)
+                    checkVibration('BottomRight', x, y)
                 }
-                setVibration(x - 1, y - 1)
-            }
-            if (game.map[y - 1][x].vibration == false) {
-                setBubblesVibration(x, y - 1, true)
-                if (game.map[y - 1][x].existing == true) {
-                    arr.push({ x: x, y: y - 1 });
+            } else {
+                if (x == 0) {
+                    checkVibration('Top', x, y)
+                    checkVibration('Right', x, y)
+                    checkVibration('Bottom', x, y)
+                } else if (x == 10) {
+                    checkVibration('Left', x, y)
+                    checkVibration('TopLeft', x, y)
+                    checkVibration('BottomLeft', x, y)
+                } else {
+                    checkVibration('Left', x, y)
+                    checkVibration('TopLeft', x, y)
+                    checkVibration('Top', x, y)
+                    checkVibration('Right', x, y)
+                    checkVibration('Bottom', x, y)
+                    checkVibration('BottomLeft', x, y)
                 }
-                setVibration(x, y - 1)
-            }
-            if (game.map[y - 1][x + 1].vibration == false) {
-                setBubblesVibration(x + 1, y - 1, true)
-                if (game.map[y - 1][x + 1].existing == true) {
-                    arr.push({ x: x + 1, y: y - 1 });
-
-                }
-                setVibration(x + 1, y - 1)
-            }
-            if (game.map[y][x + 1].vibration == false) {
-                setBubblesVibration(x + 1, y, true)
-                if (game.map[y][x + 1].existing == true) {
-                    arr.push({ x: x + 1, y: y });
-                }
-                setVibration(x + 1, y)
-            }
-            if (game.map[y + 1][x + 1].vibration == false) {
-                setBubblesVibration(x + 1, y + 1, true)
-                if (game.map[y + 1][x + 1].existing == true) {
-                    arr.push({ x: x + 1, y: y + 1 });
-                }
-                setVibration(x + 1, y + 1)
-            }
-            if (game.map[y + 1][x].vibration == false) {
-                setBubblesVibration(x, y + 1, true)
-                if (game.map[y + 1][x].existing == true) {
-                    arr.push({ x: x, y: y + 1 });
-                }
-                setVibration(x, y + 1)
-            }
-            if (game.map[y + 1][x - 1].vibration == false) {
-                setBubblesVibration(x - 1, y + 1, true)
-                if (game.map[y + 1][x - 1].existing == true) {
-                    arr.push({ x: x - 1, y: y + 1 });
-                }
-                setVibration(x - 1, y + 1)
             }
         }
-        return arr
     }
-
+    function checkVibration(direction, x, y) {
+        var index = renderXY(direction, x, y)
+        if (game.map[index.y][index.x].vibration == false) {
+            setBubblesVibration(index.x, index.y, true)
+            if (game.map[index.y][index.x].existing == true) {
+                arr.push({ x: index.x, y: index.y });
+                setVibration(index.x, index.y)
+            }
+        }
+    }
     function setBubblesVibration(x, y, vibration) {
         var bubble = game.map[y][x]
         game.map[y][x] = { x: bubble.x, y: bubble.y, existing: bubble.existing, bubble: bubble.bubble, color: bubble.color, checked: false, checkAlone: false, vibration: vibration }
-
     }
     function delaminations(x, y, turn) {
         var array = []
@@ -950,8 +942,136 @@ async function vibration(x, y) {
         });
         return array
     }
-
 }
+
+
+// async function vibration(x, y) {
+//     var arr = []
+//     var a = x, b = y
+//     var arr = await setVibration(x, y)
+//     var arr1 = delaminations(x, y, 1)
+//     var arr2 = delaminations(x, y, 2)
+//     var arr3 = delaminations(x, y, 3)
+
+//     arr1.forEach(element => {
+//         var bubbles = game.map[element.y][element.x]
+//         createjs.Tween.get(bubbles.bubble)
+//             .to({ y: bubbles.bubble.y - 5 }, 100)
+//             .to({ y: bubbles.bubble.y }, 100)
+//         // containerMain.removeChild(element.bubble)
+//     });
+//     setTimeout(function () {
+//         arr2.forEach(element => {
+
+//             var bubbles = game.map[element.y][element.x]
+//             createjs.Tween.get(bubbles.bubble)
+//                 .to({ y: bubbles.bubble.y - 5 }, 100)
+//                 .to({ y: bubbles.bubble.y }, 100)
+//             // containerMain.removeChild(element.bubble)
+//         });
+//     }
+//         , 200);
+//     setTimeout(function () {
+//         arr3.forEach(element => {
+
+//             var bubbles = game.map[element.y][element.x]
+//             createjs.Tween.get(bubbles.bubble)
+//                 .to({ y: bubbles.bubble.y - 5 }, 100)
+//                 .to({ y: bubbles.bubble.y }, 100)
+//             // containerMain.removeChild(element.bubble)
+//         });
+//     }
+//         , 400);
+//     setTimeout(function () {
+//         removeBubble(x, y)
+//     }, 600);
+//     function setVibration(x, y) {
+//         if (x < a + 3 && y < b + 3 && x > a - 3 && y > b - 3) {
+//             x = x - 1 < 0 ? 1 : x
+//             x = x + 1 > 10 ? 9 : x
+//             y = y - 1 < 0 ? 1 : y
+//             y = y + 1 > 22 ? 21 : y
+//             if (game.map[y][x - 1].vibration == false) {
+//                 setBubblesVibration(x - 1, y, true)
+//                 if (game.map[y][x - 1].existing == true) {
+//                     arr.push({ x: x - 1, y: y });
+//                     setVibration(x - 1, y)
+//                 }
+//             }
+//             if (game.map[y - 1][x - 1].vibration == false) {
+//                 setBubblesVibration(x - 1, y - 1, true)
+//                 if (game.map[y - 1][x - 1].existing == true) {
+//                     arr.push({ x: x - 1, y: y - 1 });
+//                     setVibration(x - 1, y - 1)
+//                 }
+//             }
+//             if (game.map[y - 1][x].vibration == false) {
+//                 setBubblesVibration(x, y - 1, true)
+//                 if (game.map[y - 1][x].existing == true) {
+//                     arr.push({ x: x, y: y - 1 });
+//                 setVibration(x, y - 1)
+//                 }
+//             }
+//             if (game.map[y - 1][x + 1].vibration == false) {
+//                 setBubblesVibration(x + 1, y - 1, true)
+//                 if (game.map[y - 1][x + 1].existing == true) {
+//                     arr.push({ x: x + 1, y: y - 1 });
+
+//                 setVibration(x + 1, y - 1)
+//                 }
+//             }
+//             if (game.map[y][x + 1].vibration == false) {
+//                 setBubblesVibration(x + 1, y, true)
+//                 if (game.map[y][x + 1].existing == true) {
+//                     arr.push({ x: x + 1, y: y });
+//                 setVibration(x + 1, y)
+//                 }
+//             }
+//             if (game.map[y + 1][x + 1].vibration == false) {
+//                 setBubblesVibration(x + 1, y + 1, true)
+//                 if (game.map[y + 1][x + 1].existing == true) {
+//                     arr.push({ x: x + 1, y: y + 1 });
+//                 setVibration(x + 1, y + 1)
+//                 }
+//             }
+//             if (game.map[y + 1][x].vibration == false) {
+//                 setBubblesVibration(x, y + 1, true)
+//                 if (game.map[y + 1][x].existing == true) {
+//                     arr.push({ x: x, y: y + 1 });
+//                 setVibration(x, y + 1)
+//                 }
+//             }
+//             if (game.map[y + 1][x - 1].vibration == false) {
+//                 setBubblesVibration(x - 1, y + 1, true)
+//                 if (game.map[y + 1][x - 1].existing == true) {
+//                     arr.push({ x: x - 1, y: y + 1 });
+//                 setVibration(x - 1, y + 1)
+//                 }
+//             }
+//         }
+//         return arr
+
+
+
+//     }
+
+//     function setBubblesVibration(x, y, vibration) {
+//         var bubble = game.map[y][x]
+//         game.map[y][x] = { x: bubble.x, y: bubble.y, existing: bubble.existing, bubble: bubble.bubble, color: bubble.color, checked: false, checkAlone: false, vibration: vibration }
+
+//     }
+//     function delaminations(x, y, turn) {
+//         var array = []
+//         var a = arr.filter(bubble => bubble.y == (y - turn) && bubble.x >= (x - turn) && bubble.x < (x + turn) || bubble.y == (y + turn) && bubble.x >= (x - turn) && bubble.x < (x + turn));
+//         var b = arr.filter(bubble => bubble.x == (x - turn) && bubble.y >= (y - turn) && bubble.y < (y + turn) || bubble.x == (x + turn) && bubble.y >= (y - turn) && bubble.y < (y + turn));
+//         var xNew = a.concat(b);
+//         xNew.forEach(element => {
+//             if (array.indexOf(element) < 0) array.push(element)
+//         });
+//         return array
+//     }
+
+// }
 
 
 // update stage
@@ -973,8 +1093,44 @@ function limitAngle(mouseangle) {
     return mouseangle
 }
 
-
-
-
-
-
+function setMove(x1, y1, x2, y2, anpha) {
+    x = x2 - x1
+    y = y2 - y1
+    if (x < 0) {
+        var xNew = x2 - anpha
+        if (y < 0) {
+            var yNew = y2 - ((anpha * (y1 - y2)) / (x1 - x2))
+            return ({ x: xNew, y: yNew })
+        } else if (y == 0) {
+            var yNew = y1
+            return ({ x: xNew, y: yNew })
+        } else {
+            var yNew = y2 + ((anpha * (y2 - y1)) / (x1 - x2))
+            return ({ x: xNew, y: yNew })
+        }
+    } else if (x == 0) {
+        var xNew = x1
+        if (y < 0) {
+            var yNew = y2 - anpha
+            return ({ x: xNew, y: yNew })
+        } else if (y == 0) {
+            var yNew = y2
+            return ({ x: xNew, y: yNew })
+        } else {
+            var yNew = y2 - anpha
+            return ({ x: xNew, y: yNew })
+        }
+    } else {
+        var xNew = x2 + anpha
+        if (y < 0) {
+            var yNew = y2 - ((anpha * (y1 - y2)) / (x2 - x1))
+            return ({ x: xNew, y: yNew })
+        } else if (y == 0) {
+            var yNew = y2
+            return ({ x: xNew, y: yNew })
+        } else {
+            var yNew = y2 + ((anpha * (y2 - y1)) / (x2 - x1))
+            return ({ x: xNew, y: yNew })
+        }
+    }
+}
