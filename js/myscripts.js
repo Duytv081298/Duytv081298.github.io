@@ -35,9 +35,7 @@ var player = {
     currentColor: null
 }
 var destinations = [], bubbleRemove = []
-
 var containerMain = new createjs.Container();
-
 // Hàm khởi tạo
 async function init() {
 
@@ -50,7 +48,6 @@ async function init() {
     createjs.Ticker.addEventListener("tick", tick);
 
 }
-
 function setStage() {
     canvas = document.getElementById("myCanvas");
     canvas.height = height
@@ -77,19 +74,39 @@ function setStage() {
 }
 function loadAnimations() {
     spriteBubbles = new createjs.SpriteSheet({
-        framerate: 10,
+        framerate: 15,
         "images": ["../data/images/dino.png"],
-        "frames": { "regX": 0, "height": 93, "count": 49, "regY": 0, "width": 93 },
+        "frames": { "regX": 0, "height": 93, "count": 70, "regY": 0, "width": 93 },
         "animations": {
-            "run_blue": [-1, 6, false],
-            "run_red": [35, 41, false],
-            "run_yellow": [42, 48, false],
-            "run-green": [14, 20, false],
-            "run_pink": [21, 27, false],
-            "run_purple": [28, 34, false],
-            "run_cyan": [7, 13, false],
+            "run_blue": [-1, 9, false],
+            "run_red": [50, 59, false],
+            "run_yellow": [60, 69, false],
+            "run-green": [20, 29, false],
+            "run_pink": [30, 39, false],
+            "run_purple": [40, 49, false],
+            "run_cyan": [10, 19, false],
         }
     });
+}
+function convertAnimations(color) {
+    switch (color) {
+        case 0:
+            return "run_blue"
+        case 1:
+            return "run_red"
+        case 2:
+            return "run_yellow"
+        case 3:
+            return "run-green"
+        case 4:
+            return "run_pink"
+        case 5:
+            return "run_purple"
+        case 6:
+            return "run_cyan"
+        default:
+            return null;
+    }
 }
 async function getData() {
     game.indexBubbleInlocal = await getLevel()
@@ -143,9 +160,6 @@ function lToIndex(x, y) {
     if (estimateY % 2 == 0 && estimateY > 1 && estimateX > 9) estimateX = 9
     return ({ x: estimateX, y: estimateY })
 }
-
-
-
 //load tất cả các image được sử dụng 
 async function loadImage() {
     queue = new createjs.LoadQueue(true, '../data/images/');
@@ -256,7 +270,6 @@ function renderBubble() {
     stage.addChild(containerMain)
     updateColor()
 }
-
 //khởi tạo player
 function setPlayer() {
     var image = new Image();
@@ -293,7 +306,6 @@ function updateColor() {
     }
     player.color = player.color.sort()
 }
-
 // định hướng
 function radToDeg(x, y) {
     return Math.atan2(y, x) * 180 / Math.PI;
@@ -406,7 +418,6 @@ function drawDot(x, y) {
     dot.y = y
     containerLine.addChild(dot);
 }
-
 function toReality(arr) {
     for (let i = 0; i < arr.length; i++) {
         if (arr[i].x == stage.canvas.width) arr[i] = { x: arr[i].x - game.bubble.currentWidth, y: arr[i].y }
@@ -422,76 +433,12 @@ function removeDuplicates(arr) {
     var maparr = new Map(dataArr);
     return [...maparr.values()]
 }
-
-
-function detectMobile() {
-    try {
-        var opts = Object.defineProperty({}, 'passive', {
-            get: function () {
-                supportsPassive = true;
-            }
-        });
-        window.addEventListener("testPassive", null, opts);
-        window.removeEventListener("testPassive", null, opts);
-    } catch (e) { }
-    var iOS = (navigator.userAgent.match(/(iPad|iPhone|iPod)/i) ? true : false);
-    if (iOS) {
-        return true;
-    }
-    var ua = navigator.userAgent.toLowerCase();
-    var isAndroid = ua.indexOf("android") > -1;
-    if (isAndroid) {
-        return true;
-    }
-    return false;
-}
-function onMouseDown(evt) {
-    pressMove = true
-    var location = currentMouse(evt)
-    player.angle = limitAngle(radToDeg(location.x - player.x, location.y - player.y) + 180)
-}
-function onPressMove(evt) {
-    if (pressMove) {
-        var location = currentMouse(evt)
-        player.angle = limitAngle(radToDeg(location.x - player.x, location.y - player.y) + 180)
-        renderDotLine()
-    }
-}
-function onMouseUp(evt) {
-    pressMove = false
-    var location = currentMouse(evt)
-    player.angle = limitAngle(radToDeg(location.x - player.x, location.y - player.y) + 180)
-    renderDotLine()
-    if (containerLine) {
-        stage.removeChild(containerLine)
-        containerLine = new createjs.Container();
-        if (destinations.length == 1) {
-            createjs.Tween.get(player.bubble)
-                .to({ x: destinations[0].x, y: destinations[0].y }, 300, createjs.Ease.linear)
-                .call(moveBubbleEnd)
-        } else {
-            createjs.Tween.get(player.bubble)
-                .to({ x: destinations[0].x, y: destinations[0].y }, 300, createjs.Ease.linear)
-            var i = 1
-            var moveBubble = setInterval(function () {
-                createjs.Tween.get(player.bubble)
-                    .to({ x: destinations[i].x, y: destinations[i].y }, 300, createjs.Ease.linear)
-                if (i == destinations.length - 1) clearInterval(moveBubble);
-                i++
-            }, 300);
-            setTimeout(moveBubbleEnd, 300 * destinations.length);
-        }
-    }
-
-}
+//Kết thúc sự kiện di chuyển player
 function moveBubbleEnd() {
     convertBubbles()
-    var index = destinations[destinations.length - 1]
-    var aReality = lToIndex(index.x, index.y)
-    // removeBubble(aReality.x, aReality.y)
     destinations = []
 }
-
+//chuyển bubble player to bubble map
 function convertBubbles() {
     var bubble = player.bubble.clone()
     containerMain.addChild(bubble)
@@ -501,70 +448,11 @@ function convertBubbles() {
     game.map[aReality.y][aReality.x] = { x: loacaton.x, y: loacaton.y, existing: true, bubble: bubble, color: player.currentColor, checked: false, checkAlone: true, vibration: false }
     stage.removeChild(player.bubble)
     player.bubble = null
-    // removeBubble(aReality.x, aReality.y)
 
     vibration(aReality.x, aReality.y)
 }
-
-//check va chạm bubble player and bubble mặc định
-function checkBubble(x, y) {
-    if (y == 0) {
-        if (x == 0) {
-            check('Right', x, y)
-            check('BottomRight', x, y)
-            check('Bottom', x, y)
-        } else if (x == 10) {
-            check('Left', x, y)
-            check('Bottom', x, y)
-            check('BottomLeft', x, y)
-        } else {
-            check('Left', x, y)
-            check('Right', x, y)
-            check('BottomRight', x, y)
-            check('Bottom', x, y)
-            check('BottomLeft', x, y)
-        }
-    } else if (y > 0 && y % 2 == 0) {
-        if (x == 0) {
-            check('Top', x, y)
-            check('TopRight', x, y)
-            check('Right', x, y)
-            check('BottomRight', x, y)
-            check('Bottom', x, y)
-        } else if (x == 9) {
-            check('Left', x, y)
-            check('Top', x, y)
-            check('TopRight', x, y)
-            check('Bottom', x, y)
-            check('BottomLeft', x, y)
-        } else {
-            check('Left', x, y)
-            check('Top', x, y)
-            check('TopRight', x, y)
-            check('Right', x, y)
-            check('BottomRight', x, y)
-            check('Bottom', x, y)
-        }
-    } else {
-        if (x == 0) {
-            check('Top', x, y)
-            check('Right', x, y)
-            check('Bottom', x, y)
-        } else if (x == 10) {
-            check('Left', x, y)
-            check('TopLeft', x, y)
-            check('BottomLeft', x, y)
-        } else {
-            check('Left', x, y)
-            check('TopLeft', x, y)
-            check('Top', x, y)
-            check('Right', x, y)
-            check('Bottom', x, y)
-            check('BottomLeft', x, y)
-        }
-    }
-}
-function check(direction, x, y) {
+//Check die bubble
+function checkDie(direction, x, y) {
     var index = renderXY(direction, x, y)
     if (game.map[index.y][index.x].existing == true) {
         if (game.map[y][x].color == game.map[index.y][index.x].color && game.map[index.y][index.x].checked == false) {
@@ -572,47 +460,6 @@ function check(direction, x, y) {
         }
     }
 }
-function renderXY(direction, x, y) {
-    var xNew = x, yNew = y
-    switch (direction) {
-        case "Left":
-            xNew = x - 1
-            break;
-        case "TopLeft":
-            xNew = x - 1
-            yNew = y - 1
-            break;
-
-        case "Top":
-            yNew = y - 1
-            break;
-
-        case "TopRight":
-            xNew = x + 1
-            yNew = y - 1
-            break;
-
-        case "Right":
-            xNew = x + 1
-            break;
-
-        case "BottomRight":
-            xNew = x + 1
-            yNew = y + 1
-            break;
-
-        case "Bottom":
-            yNew = y + 1
-            break;
-
-        case "BottomLeft":
-            xNew = x - 1
-            yNew = y + 1
-            break;
-    }
-    return { x: xNew, y: yNew }
-}
-
 //set rỗng cho các vị trí không có bubble trên map
 function updateLocationEmpty(x, y) {
     var a = game.map[y][x]
@@ -623,11 +470,11 @@ function updateCheckBubble(x, y) {
     var a = game.map[y][x]
     game.map[y][x] = { x: a.x, y: a.y, existing: a.existing, bubble: a.bubble, color: a.color, checked: true, checkAlone: false }
     bubbleRemove.push({ x: x, y: y })
-    checkBubble(x, y)
+    getAdjacent(x, y, 1)
 }
 // xóa bubbles khi bắn khi thỏa mãn đk
 async function removeBubble(x, y) {
-    await checkBubble(x, y)
+    await getAdjacent(x, y, 1)
     if (bubbleRemove.length >= 3) {
         bubbleRemove.forEach(i => {
             var a = game.map[i.y][i.x]
@@ -648,6 +495,7 @@ async function removeBubble(x, y) {
     }
     setPlayer()
 }
+// call animation bubble die
 function bubbleDie(color, x, y) {
     var bubble = new createjs.Sprite(spriteBubbles, convertAnimations(color));
     bubble.scaleX = 0.7;
@@ -662,102 +510,20 @@ function bubbleDie(color, x, y) {
         bubble = null
     }
 }
-function convertAnimations(color) {
-    switch (color) {
-        case 0:
-            return "run_blue"
-        case 1:
-            return "run_red"
-        case 2:
-            return "run_yellow"
-        case 3:
-            return "run-green"
-        case 4:
-            return "run_pink"
-        case 5:
-            return "run_purple"
-        case 6:
-            return "run_cyan"
-        default:
-            return null;
-    }
+//check bubble alone
+function checkAlone(direction, x, y) {
+    var index = renderXY(direction, x, y)
+    if (game.map[index.y][index.x].existing == true && game.map[index.y][index.x].checkAlone == false) updateCheckAlone(index.x, index.y)
 }
-
-
-function checkBubbleAlone(x, y) {
-    if (y == 0) {
-        if (x == 0) {
-            checkAlone('Right', x, y)
-            checkAlone('BottomRight', x, y)
-            checkAlone('Bottom', x, y)
-        } else if (x == 10) {
-            checkAlone('Left', x, y)
-            checkAlone('Bottom', x, y)
-            checkAlone('BottomLeft', x, y)
-        } else {
-            checkAlone('Left', x, y)
-            checkAlone('Right', x, y)
-            checkAlone('BottomRight', x, y)
-            checkAlone('Bottom', x, y)
-            checkAlone('BottomLeft', x, y)
-        }
-    } else if (y > 0 && y % 2 == 0) {
-        if (x == 0) {
-            checkAlone('Top', x, y)
-            checkAlone('TopRight', x, y)
-            checkAlone('Right', x, y)
-            checkAlone('BottomRight', x, y)
-            checkAlone('Bottom', x, y)
-        } else if (x == 9) {
-            checkAlone('Left', x, y)
-            checkAlone('Top', x, y)
-            checkAlone('TopRight', x, y)
-            checkAlone('Bottom', x, y)
-            checkAlone('BottomLeft', x, y)
-        } else {
-
-            checkAlone('Left', x, y)
-            checkAlone('Top', x, y)
-            checkAlone('TopRight', x, y)
-            checkAlone('Right', x, y)
-            checkAlone('BottomRight', x, y)
-            checkAlone('Bottom', x, y)
-        }
-    } else {
-        if (x == 0) {
-            checkAlone('Top', x, y)
-            checkAlone('Right', x, y)
-            checkAlone('Bottom', x, y)
-        } else if (x == 10) {
-            checkAlone('Left', x, y)
-            checkAlone('TopLeft', x, y)
-            checkAlone('BottomLeft', x, y)
-        } else {
-            checkAlone('Left', x, y)
-            checkAlone('TopLeft', x, y)
-            checkAlone('Top', x, y)
-            checkAlone('Right', x, y)
-            checkAlone('Bottom', x, y)
-            checkAlone('BottomLeft', x, y)
-        }
-    }
-
-    function checkAlone(direction, x, y) {
-        var index = renderXY(direction, x, y)
-
-        if (game.map[index.y][index.x].existing == true && game.map[index.y][index.x].checkAlone == false) updateCheckAlone(index.x, index.y)
-    }
-
-    function updateCheckAlone(x, y) {
-        var a = game.map[y][x]
-        game.map[y][x] = { x: a.x, y: a.y, existing: a.existing, bubble: a.bubble, color: a.color, checked: false, checkAlone: true, vibration: false }
-        checkBubbleAlone(x, y)
-    }
+function updateCheckAlone(x, y) {
+    var a = game.map[y][x]
+    game.map[y][x] = { x: a.x, y: a.y, existing: a.existing, bubble: a.bubble, color: a.color, checked: false, checkAlone: true, vibration: false }
+    getAdjacent(x, y, 0)
 }
 async function getBubbleAlone() {
     var arr = []
     var x = 0, y = 0
-    await checkBubbleAlone(0, 0)
+    await getAdjacent(0, 0, 0)
     game.map.forEach(element => {
         x = 0
         element.forEach(bubble => {
@@ -798,8 +564,6 @@ async function removeBubbleAlone() {
     setStar()
     resetAlone()
 }
-
-
 async function setStar() {
     var complete = await checkComplete()
     if (complete) {
@@ -823,6 +587,7 @@ async function setStar() {
         }
     }
 }
+//check win
 function checkComplete() {
     var complete = true
     game.map.forEach(element => {
@@ -832,9 +597,7 @@ function checkComplete() {
     });
     return complete
 }
-
-
-
+// rung khi bubble player va chamj
 async function vibration(x, y) {
     var arr = []
     var a = x, b = y
@@ -845,8 +608,8 @@ async function vibration(x, y) {
     var arr2 = delaminations(x, y, 2)
     var arr3 = delaminations(x, y, 3)
 
-    await moveVibration(arr1, 6, 1)
-    await moveVibration(arr2, 4, 2)
+    await moveVibration(arr1, 7, 1)
+    await moveVibration(arr2, 5, 2)
     await moveVibration(arr3, 2, 3)
 
     function moveVibration(arr, side, turn) {
@@ -855,8 +618,6 @@ async function vibration(x, y) {
             var oldx = bubbles.x
             var oldy = bubbles.y
             var index = game.map[y][x]
-
-            console.log(element.x + ' , ' + element.y);
             var newIndex = setMove(index.x, index.y, oldx, oldy, side)
             createjs.Tween.get(bubbles.bubble)
                 .to({ x: newIndex.x, y: newIndex.y }, 100)
@@ -943,145 +704,33 @@ async function vibration(x, y) {
         return array
     }
 }
-
-
-// async function vibration(x, y) {
-//     var arr = []
-//     var a = x, b = y
-//     var arr = await setVibration(x, y)
-//     var arr1 = delaminations(x, y, 1)
-//     var arr2 = delaminations(x, y, 2)
-//     var arr3 = delaminations(x, y, 3)
-
-//     arr1.forEach(element => {
-//         var bubbles = game.map[element.y][element.x]
-//         createjs.Tween.get(bubbles.bubble)
-//             .to({ y: bubbles.bubble.y - 5 }, 100)
-//             .to({ y: bubbles.bubble.y }, 100)
-//         // containerMain.removeChild(element.bubble)
-//     });
-//     setTimeout(function () {
-//         arr2.forEach(element => {
-
-//             var bubbles = game.map[element.y][element.x]
-//             createjs.Tween.get(bubbles.bubble)
-//                 .to({ y: bubbles.bubble.y - 5 }, 100)
-//                 .to({ y: bubbles.bubble.y }, 100)
-//             // containerMain.removeChild(element.bubble)
-//         });
-//     }
-//         , 200);
-//     setTimeout(function () {
-//         arr3.forEach(element => {
-
-//             var bubbles = game.map[element.y][element.x]
-//             createjs.Tween.get(bubbles.bubble)
-//                 .to({ y: bubbles.bubble.y - 5 }, 100)
-//                 .to({ y: bubbles.bubble.y }, 100)
-//             // containerMain.removeChild(element.bubble)
-//         });
-//     }
-//         , 400);
-//     setTimeout(function () {
-//         removeBubble(x, y)
-//     }, 600);
-//     function setVibration(x, y) {
-//         if (x < a + 3 && y < b + 3 && x > a - 3 && y > b - 3) {
-//             x = x - 1 < 0 ? 1 : x
-//             x = x + 1 > 10 ? 9 : x
-//             y = y - 1 < 0 ? 1 : y
-//             y = y + 1 > 22 ? 21 : y
-//             if (game.map[y][x - 1].vibration == false) {
-//                 setBubblesVibration(x - 1, y, true)
-//                 if (game.map[y][x - 1].existing == true) {
-//                     arr.push({ x: x - 1, y: y });
-//                     setVibration(x - 1, y)
-//                 }
-//             }
-//             if (game.map[y - 1][x - 1].vibration == false) {
-//                 setBubblesVibration(x - 1, y - 1, true)
-//                 if (game.map[y - 1][x - 1].existing == true) {
-//                     arr.push({ x: x - 1, y: y - 1 });
-//                     setVibration(x - 1, y - 1)
-//                 }
-//             }
-//             if (game.map[y - 1][x].vibration == false) {
-//                 setBubblesVibration(x, y - 1, true)
-//                 if (game.map[y - 1][x].existing == true) {
-//                     arr.push({ x: x, y: y - 1 });
-//                 setVibration(x, y - 1)
-//                 }
-//             }
-//             if (game.map[y - 1][x + 1].vibration == false) {
-//                 setBubblesVibration(x + 1, y - 1, true)
-//                 if (game.map[y - 1][x + 1].existing == true) {
-//                     arr.push({ x: x + 1, y: y - 1 });
-
-//                 setVibration(x + 1, y - 1)
-//                 }
-//             }
-//             if (game.map[y][x + 1].vibration == false) {
-//                 setBubblesVibration(x + 1, y, true)
-//                 if (game.map[y][x + 1].existing == true) {
-//                     arr.push({ x: x + 1, y: y });
-//                 setVibration(x + 1, y)
-//                 }
-//             }
-//             if (game.map[y + 1][x + 1].vibration == false) {
-//                 setBubblesVibration(x + 1, y + 1, true)
-//                 if (game.map[y + 1][x + 1].existing == true) {
-//                     arr.push({ x: x + 1, y: y + 1 });
-//                 setVibration(x + 1, y + 1)
-//                 }
-//             }
-//             if (game.map[y + 1][x].vibration == false) {
-//                 setBubblesVibration(x, y + 1, true)
-//                 if (game.map[y + 1][x].existing == true) {
-//                     arr.push({ x: x, y: y + 1 });
-//                 setVibration(x, y + 1)
-//                 }
-//             }
-//             if (game.map[y + 1][x - 1].vibration == false) {
-//                 setBubblesVibration(x - 1, y + 1, true)
-//                 if (game.map[y + 1][x - 1].existing == true) {
-//                     arr.push({ x: x - 1, y: y + 1 });
-//                 setVibration(x - 1, y + 1)
-//                 }
-//             }
-//         }
-//         return arr
-
-
-
-//     }
-
-//     function setBubblesVibration(x, y, vibration) {
-//         var bubble = game.map[y][x]
-//         game.map[y][x] = { x: bubble.x, y: bubble.y, existing: bubble.existing, bubble: bubble.bubble, color: bubble.color, checked: false, checkAlone: false, vibration: vibration }
-
-//     }
-//     function delaminations(x, y, turn) {
-//         var array = []
-//         var a = arr.filter(bubble => bubble.y == (y - turn) && bubble.x >= (x - turn) && bubble.x < (x + turn) || bubble.y == (y + turn) && bubble.x >= (x - turn) && bubble.x < (x + turn));
-//         var b = arr.filter(bubble => bubble.x == (x - turn) && bubble.y >= (y - turn) && bubble.y < (y + turn) || bubble.x == (x + turn) && bubble.y >= (y - turn) && bubble.y < (y + turn));
-//         var xNew = a.concat(b);
-//         xNew.forEach(element => {
-//             if (array.indexOf(element) < 0) array.push(element)
-//         });
-//         return array
-//     }
-
-// }
-
-
-// update stage
 function tick(event) {
     if (update) {
         // update = false;
         stage.update(event);
     }
 }
-
+function detectMobile() {
+    try {
+        var opts = Object.defineProperty({}, 'passive', {
+            get: function () {
+                supportsPassive = true;
+            }
+        });
+        window.addEventListener("testPassive", null, opts);
+        window.removeEventListener("testPassive", null, opts);
+    } catch (e) { }
+    var iOS = (navigator.userAgent.match(/(iPad|iPhone|iPod)/i) ? true : false);
+    if (iOS) {
+        return true;
+    }
+    var ua = navigator.userAgent.toLowerCase();
+    var isAndroid = ua.indexOf("android") > -1;
+    if (isAndroid) {
+        return true;
+    }
+    return false;
+}
 function currentMouse(evt) {
     return isMobile ? { x: evt.changedTouches[0].clientX, y: evt.changedTouches[0].clientY } : { x: evt.layerX, y: evt.layerY }
 }
@@ -1092,7 +741,6 @@ function limitAngle(mouseangle) {
     if (mouseangle < lbound || mouseangle >= 270) mouseangle = lbound
     return mouseangle
 }
-
 function setMove(x1, y1, x2, y2, anpha) {
     x = x2 - x1
     y = y2 - y1
@@ -1133,4 +781,133 @@ function setMove(x1, y1, x2, y2, anpha) {
             return ({ x: xNew, y: yNew })
         }
     }
+}
+function getAdjacent(x, y, die) {
+    if (y == 0) {
+            die == 1 ? checkDie('Bottom', x, y) : checkAlone('Bottom', x, y)
+        if (x == 0) {
+            die == 1 ? checkDie('Right', x, y) : checkAlone('Right', x, y)
+            die == 1 ? checkDie('BottomRight', x, y) : checkAlone('BottomRight', x, y)
+        } else if (x == 10) {
+            die == 1 ? checkDie('Left', x, y) : checkAlone('Left', x, y)
+            die == 1 ? checkDie('BottomLeft', x, y) : checkAlone('BottomLeft', x, y)
+        } else {
+            die == 1 ? checkDie('Left', x, y) : checkAlone('Left', x, y)
+            die == 1 ? checkDie('Right', x, y) : checkAlone('Right', x, y)
+            die == 1 ? checkDie('BottomRight', x, y) : checkAlone('BottomRight', x, y)
+            die == 1 ? checkDie('BottomLeft', x, y) : checkAlone('BottomLeft', x, y)
+        }
+    } else if (y > 0 && y % 2 == 0) {
+            die == 1 ? checkDie('Top', x, y) : checkAlone('Top', x, y)
+            die == 1 ? checkDie('TopRight', x, y) : checkAlone('TopRight', x, y)
+            die == 1 ? checkDie('Bottom', x, y) : checkAlone('Bottom', x, y)
+        if (x == 0) {
+            die == 1 ? checkDie('Right', x, y) : checkAlone('Right', x, y)
+            die == 1 ? checkDie('BottomRight', x, y) : checkAlone('BottomRight', x, y)
+        } else if (x == 9) {
+            die == 1 ? checkDie('Left', x, y) : checkAlone('Left', x, y)
+            die == 1 ? checkDie('BottomLeft', x, y) : checkAlone('BottomLeft', x, y)
+        } else {
+            die == 1 ? checkDie('Left', x, y) : checkAlone('Left', x, y)
+            die == 1 ? checkDie('Right', x, y) : checkAlone('Right', x, y)
+            die == 1 ? checkDie('BottomRight', x, y) : checkAlone('BottomRight', x, y)
+        }
+    } else {
+        if (x == 0) {
+            die == 1 ? checkDie('Top', x, y) : checkAlone('Top', x, y)
+            die == 1 ? checkDie('Right', x, y) : checkAlone('Right', x, y)
+            die == 1 ? checkDie('Bottom', x, y) : checkAlone('Bottom', x, y)
+        } else if (x == 10) {
+            die == 1 ? checkDie('Left', x, y) : checkAlone('Left', x, y)
+            die == 1 ? checkDie('TopLeft', x, y) : checkAlone('TopLeft', x, y)
+            die == 1 ? checkDie('BottomLeft', x, y) : checkAlone('BottomLeft', x, y)
+        } else {
+            die == 1 ? checkDie('Left', x, y) : checkAlone('Left', x, y)
+            die == 1 ? checkDie('TopLeft', x, y) : checkAlone('TopLeft', x, y)
+            die == 1 ? checkDie('Top', x, y) : checkAlone('Top', x, y)
+            die == 1 ? checkDie('Right', x, y) : checkAlone('Right', x, y)
+            die == 1 ? checkDie('Bottom', x, y) : checkAlone('Bottom', x, y)
+            die == 1 ? checkDie('BottomLeft', x, y) : checkAlone('BottomLeft', x, y)
+        }
+    }
+}
+function renderXY(direction, x, y) {
+    var xNew = x, yNew = y
+    switch (direction) {
+        case "Left":
+            xNew = x - 1
+            break;
+        case "TopLeft":
+            xNew = x - 1
+            yNew = y - 1
+            break;
+
+        case "Top":
+            yNew = y - 1
+            break;
+
+        case "TopRight":
+            xNew = x + 1
+            yNew = y - 1
+            break;
+
+        case "Right":
+            xNew = x + 1
+            break;
+
+        case "BottomRight":
+            xNew = x + 1
+            yNew = y + 1
+            break;
+
+        case "Bottom":
+            yNew = y + 1
+            break;
+
+        case "BottomLeft":
+            xNew = x - 1
+            yNew = y + 1
+            break;
+    }
+    return { x: xNew, y: yNew }
+}
+// Event
+function onMouseDown(evt) {
+    pressMove = true
+    var location = currentMouse(evt)
+    player.angle = limitAngle(radToDeg(location.x - player.x, location.y - player.y) + 180)
+}
+function onPressMove(evt) {
+    if (pressMove) {
+        var location = currentMouse(evt)
+        player.angle = limitAngle(radToDeg(location.x - player.x, location.y - player.y) + 180)
+        renderDotLine()
+    }
+}
+function onMouseUp(evt) {
+    pressMove = false
+    var location = currentMouse(evt)
+    player.angle = limitAngle(radToDeg(location.x - player.x, location.y - player.y) + 180)
+    renderDotLine()
+    if (containerLine) {
+        stage.removeChild(containerLine)
+        containerLine = new createjs.Container();
+        if (destinations.length == 1) {
+            createjs.Tween.get(player.bubble)
+                .to({ x: destinations[0].x, y: destinations[0].y }, 300, createjs.Ease.linear)
+                .call(moveBubbleEnd)
+        } else {
+            createjs.Tween.get(player.bubble)
+                .to({ x: destinations[0].x, y: destinations[0].y }, 300, createjs.Ease.linear)
+            var i = 1
+            var moveBubble = setInterval(function () {
+                createjs.Tween.get(player.bubble)
+                    .to({ x: destinations[i].x, y: destinations[i].y }, 300, createjs.Ease.linear)
+                if (i == destinations.length - 1) clearInterval(moveBubble);
+                i++
+            }, 300);
+            setTimeout(moveBubbleEnd, 300 * destinations.length);
+        }
+    }
+
 }
