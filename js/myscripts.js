@@ -153,7 +153,7 @@ function setMap() {
 function lToIndex(x, y) {
     var estimateY = Math.floor(y / (game.bubble.currentHeight))
     if (estimateY % 2 == 0 && estimateY > 1) x -= game.surplus
-    if (estimateY > 18) estimateY = 18
+    if (estimateY > 25) estimateY = 25
     var estimateX = Math.floor(x / (game.bubble.currentWidth) + 0.00000000000001)
     if (estimateX < 0) estimateX = 0
     if (estimateX > 10) estimateX = 10
@@ -751,6 +751,7 @@ function setMove(x1, y1, x2, y2, anpha) {
             return ({ x: xNew, y: yNew })
         } else if (y == 0) {
             var yNew = y2
+            xNew = x2 - 2 * anpha
             return ({ x: xNew, y: yNew })
         } else {
             var yNew = y2 + ((anpha * (y2 - y1)) / (x1 - x2))
@@ -759,7 +760,7 @@ function setMove(x1, y1, x2, y2, anpha) {
     } else if (x == 0) {
         var xNew = x1
         if (y < 0) {
-            var yNew = y2 - 3*anpha
+            var yNew = y2 - 3 * anpha
             return ({ x: xNew, y: yNew })
         } else if (y == 0) {
             var yNew = y2
@@ -775,6 +776,8 @@ function setMove(x1, y1, x2, y2, anpha) {
             return ({ x: xNew, y: yNew })
         } else if (y == 0) {
             var yNew = y2
+
+            xNew = x2 + 2 * anpha
             return ({ x: xNew, y: yNew })
         } else {
             var yNew = y2 + ((anpha * (y2 - y1)) / (x2 - x1))
@@ -784,7 +787,7 @@ function setMove(x1, y1, x2, y2, anpha) {
 }
 function getAdjacent(x, y, die) {
     if (y == 0) {
-            die == 1 ? checkDie('Bottom', x, y) : checkAlone('Bottom', x, y)
+        die == 1 ? checkDie('Bottom', x, y) : checkAlone('Bottom', x, y)
         if (x == 0) {
             die == 1 ? checkDie('Right', x, y) : checkAlone('Right', x, y)
             die == 1 ? checkDie('BottomRight', x, y) : checkAlone('BottomRight', x, y)
@@ -798,9 +801,9 @@ function getAdjacent(x, y, die) {
             die == 1 ? checkDie('BottomLeft', x, y) : checkAlone('BottomLeft', x, y)
         }
     } else if (y > 0 && y % 2 == 0) {
-            die == 1 ? checkDie('Top', x, y) : checkAlone('Top', x, y)
-            die == 1 ? checkDie('TopRight', x, y) : checkAlone('TopRight', x, y)
-            die == 1 ? checkDie('Bottom', x, y) : checkAlone('Bottom', x, y)
+        die == 1 ? checkDie('Top', x, y) : checkAlone('Top', x, y)
+        die == 1 ? checkDie('TopRight', x, y) : checkAlone('TopRight', x, y)
+        die == 1 ? checkDie('Bottom', x, y) : checkAlone('Bottom', x, y)
         if (x == 0) {
             die == 1 ? checkDie('Right', x, y) : checkAlone('Right', x, y)
             die == 1 ? checkDie('BottomRight', x, y) : checkAlone('BottomRight', x, y)
