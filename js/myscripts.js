@@ -36,18 +36,18 @@ var player = {
 }
 var destinations = [], bubbleRemove = []
 var containerMain = new createjs.Container();
+var nInName = 0
+
 // Hàm khởi tạo
 async function init() {
-
     await setStage()
-
     game.map = setMap()
     loadAnimations()
     getData()
     createjs.Ticker.framerate = 60
     createjs.Ticker.addEventListener("tick", tick);
-
 }
+
 function setStage() {
     canvas = document.getElementById("myCanvas");
     canvas.height = height
@@ -115,7 +115,7 @@ async function getData() {
 // đọc file levels map
 async function getLevel() {
     var map
-    await $.getJSON("../data/levels/level_0.json", function (data) {
+    await $.getJSON("../data/levels/level_5.json", function (data) {
         map = data.bubbles
     });
     return map
@@ -274,6 +274,7 @@ function renderBubble() {
 function setPlayer() {
     var image = new Image();
     updateColor()
+    console.log(player.color);
     var id = player.color[Math.floor(Math.random() * player.color.length)]
     image = convertIdtoBubble(id)
     var bubble = new createjs.Bitmap(image);
@@ -288,6 +289,8 @@ function setPlayer() {
     player.y = stage.canvas.height * 9 / 10 - game.bubble.currentWidth * 1.5
     player.currentColor = id
     player.bubble = bubble
+    bubble.name = 'player' + nInName
+    nInName++
     stage.addChild(bubble);
 }
 function updateColor() {
@@ -295,9 +298,10 @@ function updateColor() {
     player.color = []
     game.map.forEach(element => {
         element.forEach(bubble => {
-            if (bubble.color) arColor.push(bubble.color)
+            if (bubble.color != null) arColor.push(bubble.color)
         });
     });
+    
     for (var i = 0; i < arColor.length; i++) {
         var color = arColor[i]
         if (player.color.indexOf(color) === -1) {
@@ -446,7 +450,10 @@ function convertBubbles() {
     var aReality = lToIndex(bubble.x, bubble.y)
     var loacaton = game.map[aReality.y][aReality.x]
     game.map[aReality.y][aReality.x] = { x: loacaton.x, y: loacaton.y, existing: true, bubble: bubble, color: player.currentColor, checked: false, checkAlone: true, vibration: false }
+    // console.log(stage.getChildByName('player'+ (nInName-1)));
     stage.removeChild(player.bubble)
+    console.log(stage.getChildByName('player' + (nInName - 1)));
+
     player.bubble = null
 
     vibration(aReality.x, aReality.y)
@@ -520,22 +527,35 @@ async function removeBubble(x, y) {
         bubbleRemove = []
         removeBubbleAlone()
     }
-    setPlayer()
 }
 // call animation bubble die
 function bubbleDie(color, x, y) {
-    var bubble = new createjs.Sprite(spriteBubbles, convertAnimations(color));
-    bubble.scaleX = 0.7;
-    bubble.scaleY = 0.7;
-    bubble.x = x
-    bubble.y = y;
+    if (color == 0 || color == 1 || color == 2 || color == 3 || color == 4 || color == 5 || color == 6 || color == 7) {
+        var bubble = new createjs.Sprite(spriteBubbles, convertAnimations(color));
+        bubble.scaleX = 0.7;
+        bubble.scaleY = 0.7;
+        bubble.x = x
+        bubble.y = y;
 
-    stage.addChild(bubble);
-    bubble.on('animationend', handleComplete);
-    function handleComplete() {
-        stage.removeChild(this)
-        bubble = null
+        stage.addChild(bubble);
+        bubble.on('animationend', handleComplete);
+        function handleComplete() {
+            stage.removeChild(this)
+            bubble = null
+        }
     }
+    // var bubble = new createjs.Sprite(spriteBubbles, convertAnimations(color));
+    // bubble.scaleX = 0.7;
+    // bubble.scaleY = 0.7;
+    // bubble.x = x
+    // bubble.y = y;
+
+    // stage.addChild(bubble);
+    // bubble.on('animationend', handleComplete);
+    // function handleComplete() {
+    //     stage.removeChild(this)
+    //     bubble = null
+    // }
 }
 //check bubble alone
 function checkAlone(direction, x, y) {
@@ -564,6 +584,7 @@ async function getBubbleAlone() {
     return arr
 }
 function resetAlone() {
+    console.log(game.map);
     var x = 0, y = 0
     game.map.forEach(element => {
         x = 0
@@ -588,6 +609,7 @@ async function removeBubbleAlone() {
                 updateLocationEmpty(i.x, i.y)
             })
     });
+    setPlayer()
     setStar()
     resetAlone()
 }
