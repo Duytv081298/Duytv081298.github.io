@@ -4,7 +4,7 @@ var isMobile = detectMobile()
 var height = $(window).height()
 var width = isMobile ? $(window).width() : height / 1.7
 
-var supportsPassive = false; pressMove = false
+var supportsPassive = false, pressMove = false
 var canvas, stage, update = true
 
 var containerLine = new createjs.Container();
@@ -883,34 +883,49 @@ function onMouseDown(evt) {
 function onPressMove(evt) {
     if (pressMove) {
         var location = currentMouse(evt)
-        player.angle = limitAngle(radToDeg(location.x - player.x, location.y - player.y) + 180)
-        renderDotLine()
+        var anpha = radToDeg(location.x - player.x, location.y - player.y) + 180
+        if (anpha >= 8 && anpha <= 172) {
+            player.angle = limitAngle(anpha)
+            renderDotLine()
+        } else {
+            stage.removeChild(containerLine)
+            containerLine = new createjs.Container();
+            destinations = []
+        }
     }
 }
 function onMouseUp(evt) {
     pressMove = false
-    var location = currentMouse(evt)
-    player.angle = limitAngle(radToDeg(location.x - player.x, location.y - player.y) + 180)
-    renderDotLine()
-    if (containerLine) {
-        stage.removeChild(containerLine)
-        containerLine = new createjs.Container();
-        if (destinations.length == 1) {
-            createjs.Tween.get(player.bubble)
-                .to({ x: destinations[0].x, y: destinations[0].y }, 300, createjs.Ease.linear)
-                .call(moveBubbleEnd)
-        } else {
-            createjs.Tween.get(player.bubble)
-                .to({ x: destinations[0].x, y: destinations[0].y }, 300, createjs.Ease.linear)
-            var i = 1
-            var moveBubble = setInterval(function () {
-                createjs.Tween.get(player.bubble)
-                    .to({ x: destinations[i].x, y: destinations[i].y }, 300, createjs.Ease.linear)
-                if (i == destinations.length - 1) clearInterval(moveBubble);
-                i++
-            }, 300);
-            setTimeout(moveBubbleEnd, 300 * destinations.length);
-        }
+    // var location = currentMouse(evt)
+    // var anpha = radToDeg(location.x - player.x, location.y - player.y) + 180
+    // if (anpha >= 8 && anpha <= 172) {
+    //     player.angle = limitAngle(anpha)
+    //     renderDotLine()
+    // }
+    // if (containerLine) {
+    //     stage.removeChild(containerLine)
+    //     containerLine = new createjs.Container();
+    if (destinations.length == 0) {
+        return null;
     }
+    if (destinations.length == 1) {
+        createjs.Tween.get(player.bubble)
+            .to({ x: destinations[0].x, y: destinations[0].y }, 300, createjs.Ease.linear)
+            .call(moveBubbleEnd)
+    } else {
+        createjs.Tween.get(player.bubble)
+            .to({ x: destinations[0].x, y: destinations[0].y }, 300, createjs.Ease.linear)
+        var i = 1
+        var moveBubble = setInterval(function () {
+            createjs.Tween.get(player.bubble)
+                .to({ x: destinations[i].x, y: destinations[i].y }, 300, createjs.Ease.linear)
+            if (i == destinations.length - 1) clearInterval(moveBubble);
+            i++
+        }, 300);
+        setTimeout(moveBubbleEnd, 300 * destinations.length);
+    }
+    stage.removeChild(containerLine)
+        containerLine = new createjs.Container();
+    // }
 
 }
