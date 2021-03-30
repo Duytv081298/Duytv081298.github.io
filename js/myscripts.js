@@ -469,22 +469,49 @@ function updateLocationEmpty(x, y) {
 function updateCheckBubble(x, y) {
     var a = game.map[y][x]
     game.map[y][x] = { x: a.x, y: a.y, existing: a.existing, bubble: a.bubble, color: a.color, checked: true, checkAlone: false }
-    bubbleRemove.push({ x: x, y: y })
     getAdjacent(x, y, 1)
+    bubbleRemove.push({ x: x, y: y })
 }
 // xóa bubbles khi bắn khi thỏa mãn đk
 async function removeBubble(x, y) {
     await getAdjacent(x, y, 1)
     if (bubbleRemove.length >= 3) {
-        bubbleRemove.forEach(i => {
-            var a = game.map[i.y][i.x]
-            containerMain.removeChild(a.bubble)
-            bubbleDie(a.color, a.x, a.y)
-            a.bubble = null
-            updateLocationEmpty(i.x, i.y)
+        var arrL = [], arrS = []
+        bubbleRemove.forEach(index => {
+            if (index.y >= y) arrL.push(index)
+            else arrS.push(index)
         });
-        bubbleRemove = []
-        removeBubbleAlone()
+        arrL.sort((a, b) => Number(a.y) - Number(b.y))
+        arrS.sort((a, b) => Number(b.y) - Number(a.y))
+        var index = 0
+        var bubbleDie1 = setInterval(function () {
+            if (index <= arrL.length - 1) {
+                var a = game.map[arrL[index].y][arrL[index].x]
+                containerMain.removeChild(a.bubble)
+                bubbleDie(a.color, a.x, a.y)
+                a.bubble = null
+                updateLocationEmpty(arrL[index].x, arrL[index].y)
+                if (arrL.length > arrS.length && index === arrL.length - 1) {
+                    clearInterval(bubbleDie1);
+                    bubbleRemove = []
+                    removeBubbleAlone()
+                }
+            }
+            if (index <= arrS.length - 1) {
+                var a = game.map[arrS[index].y][arrS[index].x]
+                containerMain.removeChild(a.bubble)
+                bubbleDie(a.color, a.x, a.y)
+                a.bubble = null
+                updateLocationEmpty(arrS[index].x, arrS[index].y)
+                if (arrS.length >= arrL.length && index === arrS.length - 1) {
+                    clearInterval(bubbleDie1);
+                    bubbleRemove = []
+                    removeBubbleAlone()
+                }
+            }
+            index++
+        }, 90);
+
     } else {
         bubbleRemove.forEach(i => {
             var a = game.map[i.y][i.x]
@@ -601,8 +628,6 @@ function checkComplete() {
 async function vibration(x, y) {
     var arr = []
     var a = x, b = y
-    console.log(x + ' , ' + y);
-
     await setVibration(x, y)
     var arr1 = delaminations(x, y, 1)
     var arr2 = delaminations(x, y, 2)
@@ -622,8 +647,8 @@ async function vibration(x, y) {
             createjs.Tween.get(bubbles.bubble)
                 .to({ x: newIndex.x, y: newIndex.y }, 100)
                 .to({ x: oldx, y: oldy }, 100)
-                .call(() => { if (turn == 3) { removeBubble(x, y) } })
         });
+        if (turn == 3) { removeBubble(x, y) }
     }
     function setVibration(x, y) {
         if (x < a + 3 && y < b + 3 && x > a - 3 && y > b - 3) {
@@ -925,7 +950,7 @@ function onMouseUp(evt) {
         setTimeout(moveBubbleEnd, 300 * destinations.length);
     }
     stage.removeChild(containerLine)
-        containerLine = new createjs.Container();
+    containerLine = new createjs.Container();
     // }
 
 }
