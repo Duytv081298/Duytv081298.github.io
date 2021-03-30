@@ -750,7 +750,7 @@ function setMove(x1, y1, x2, y2, anpha) {
             var yNew = y2 - ((anpha * (y1 - y2)) / (x1 - x2))
             return ({ x: xNew, y: yNew })
         } else if (y == 0) {
-            var yNew = y1
+            var yNew = y2
             return ({ x: xNew, y: yNew })
         } else {
             var yNew = y2 + ((anpha * (y2 - y1)) / (x1 - x2))
@@ -759,7 +759,7 @@ function setMove(x1, y1, x2, y2, anpha) {
     } else if (x == 0) {
         var xNew = x1
         if (y < 0) {
-            var yNew = y2 - anpha
+            var yNew = y2 - 3*anpha
             return ({ x: xNew, y: yNew })
         } else if (y == 0) {
             var yNew = y2
