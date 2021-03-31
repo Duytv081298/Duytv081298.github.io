@@ -269,12 +269,13 @@ function renderBubble() {
     });
     stage.addChild(containerMain)
     updateColor()
+    // console.log(game.map);
 }
 //khởi tạo player
 function setPlayer() {
     var image = new Image();
     updateColor()
-    console.log(player.color);
+    // console.log(player.color);
     var id = player.color[Math.floor(Math.random() * player.color.length)]
     image = convertIdtoBubble(id)
     var bubble = new createjs.Bitmap(image);
@@ -343,8 +344,8 @@ function renderDotLine() {
             startY = player.y,
             sideK = startX
         if (dotLineArr.length != 0) {
-            startX = dotLineArr[dotLineArr.length - 1].x,
-                startY = dotLineArr[dotLineArr.length - 1].y
+            startX = dotLineArr[dotLineArr.length - 1].x
+            startY = dotLineArr[dotLineArr.length - 1].y
             sideK = stage.canvas.width
         }
         var cosAngle = Math.abs(Math.cos(degToRad(player.angle)))
@@ -400,6 +401,7 @@ function renderDotLine() {
     dotLineArr.forEach(dot => {
         drawDot(dot.x, dot.y)
     });
+    // console.log( lToIndex(dotLineArr[dotLineArr.length - 1].x, dotLineArr[dotLineArr.length - 1].y));
     var a = dotLineArr.filter(dot => dot.x == 0 || dot.x == stage.canvas.width)
     destinations = removeDuplicates(a)
     destinations.push(dotLineArr[dotLineArr.length - 1])
@@ -440,23 +442,30 @@ function removeDuplicates(arr) {
 //Kết thúc sự kiện di chuyển player
 function moveBubbleEnd() {
     convertBubbles()
-    destinations = []
+    
 }
 //chuyển bubble player to bubble map
 function convertBubbles() {
     var bubble = player.bubble.clone()
+    
+    // var aReality = lToIndex(bubble.x, bubble.y)
+    var aReality = lToIndex(destinations[destinations.length-1].x, destinations[destinations.length-1].y)
+    var loacaton = game.map[aReality.y][aReality.x] 
+    bubble.x = loacaton.x
+    bubble.y = loacaton.y
     containerMain.addChild(bubble)
 
-    var aReality = lToIndex(bubble.x, bubble.y)
-    var loacaton = game.map[aReality.y][aReality.x]
+    // console.log('x: ' + bubble.x + ' y: ' + bubble.y);
+    // var loacaton = game.map[aReality.y][aReality.x]
     game.map[aReality.y][aReality.x] = { x: loacaton.x, y: loacaton.y, existing: true, bubble: bubble, color: player.currentColor, checked: false, checkAlone: true, vibration: false }
     // console.log(stage.getChildByName('player'+ (nInName-1)));
     stage.removeChild(player.bubble)
-    console.log(stage.getChildByName('player' + (nInName - 1)));
+    // console.log(stage.getChildByName('player' + (nInName - 1)));
 
     player.bubble = null
 
     vibration(aReality.x, aReality.y)
+    destinations = []
 }
 //Check die bubble
 function checkDie(direction, x, y) {
@@ -482,10 +491,13 @@ function updateCheckBubble(x, y) {
 // xóa bubbles khi bắn khi thỏa mãn đk
 async function removeBubble(x, y) {
     await getAdjacent(x, y, 1)
+    // console.log('x: ' + x + ' y: ' + y);
     if (bubbleRemove.length >= 3) {
+        // console.log(bubbleRemove);
         var arrL = [], arrS = []
+        arrL.push({x: x, y: y})
         bubbleRemove.forEach(index => {
-            if (index.y >= y) arrL.push(index)
+            if (index.y > y) arrL.push(index)
             else arrS.push(index)
         });
         arrL.sort((a, b) => Number(a.y) - Number(b.y))
@@ -544,18 +556,6 @@ function bubbleDie(color, x, y) {
             bubble = null
         }
     }
-    // var bubble = new createjs.Sprite(spriteBubbles, convertAnimations(color));
-    // bubble.scaleX = 0.7;
-    // bubble.scaleY = 0.7;
-    // bubble.x = x
-    // bubble.y = y;
-
-    // stage.addChild(bubble);
-    // bubble.on('animationend', handleComplete);
-    // function handleComplete() {
-    //     stage.removeChild(this)
-    //     bubble = null
-    // }
 }
 //check bubble alone
 function checkAlone(direction, x, y) {
@@ -584,7 +584,7 @@ async function getBubbleAlone() {
     return arr
 }
 function resetAlone() {
-    console.log(game.map);
+    // console.log(game.map);
     var x = 0, y = 0
     game.map.forEach(element => {
         x = 0
@@ -956,6 +956,7 @@ function onMouseUp(evt) {
         return null;
     }
     if (destinations.length == 1) {
+        // console.log('Move: __________  x: ' +  lToIndex(destinations[0].x, destinations[0].y).x + ' y: ' + lToIndex(destinations[0].x, destinations[0].y).y);
         createjs.Tween.get(player.bubble)
             .to({ x: destinations[0].x, y: destinations[0].y }, 300, createjs.Ease.linear)
             .call(moveBubbleEnd)
@@ -964,6 +965,8 @@ function onMouseUp(evt) {
             .to({ x: destinations[0].x, y: destinations[0].y }, 300, createjs.Ease.linear)
         var i = 1
         var moveBubble = setInterval(function () {
+            // console.log('Move: __________  x: ' +  lToIndex(destinations[0].x, destinations[0].y).x + ' y: ' + lToIndex(destinations[0].x, destinations[0].y).y);
+
             createjs.Tween.get(player.bubble)
                 .to({ x: destinations[i].x, y: destinations[i].y }, 300, createjs.Ease.linear)
             if (i == destinations.length - 1) clearInterval(moveBubble);
