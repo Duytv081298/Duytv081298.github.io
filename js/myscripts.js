@@ -14,6 +14,10 @@ var queue, game = {
     levels: 1,
     indexBubbleInlocal: null,
     map: [],
+    frames: {
+        x: 0,
+        y: 0,
+    },
     bubble: {
         width: 110,
         height: 110,
@@ -29,6 +33,7 @@ var queue, game = {
 var player = {
     x: 0,
     y: 0,
+    v: 1.5,
     angle: 0,
     bubble: null,
     color: [],
@@ -40,12 +45,35 @@ var nInName = 0
 
 // Hàm khởi tạo
 async function init() {
+    createjs.MotionGuidePlugin.install(createjs.Tween);
     await setStage()
     game.map = setMap()
     loadAnimations()
     getData()
     createjs.Ticker.framerate = 60
     createjs.Ticker.addEventListener("tick", tick);
+}
+function addEvent() {
+    if (isMobile) {
+        canvas.addEventListener("touchstart", onMouseDown, supportsPassive ? { passive: true } : false);
+        canvas.addEventListener("touchmove", onPressMove, supportsPassive ? { passive: true } : false);
+        canvas.addEventListener("touchend", onMouseUp, supportsPassive ? { passive: true } : false);
+    } else {
+        canvas.addEventListener("mousedown", onMouseDown);
+        canvas.addEventListener("mousemove", onPressMove);
+        canvas.addEventListener("mouseup", onMouseUp);
+    }
+}
+function removeEvent() {
+    if (isMobile) {
+        canvas.removeEventListener("touchstart", onMouseDown, supportsPassive ? { passive: true } : false);
+        canvas.removeEventListener("touchmove", onPressMove, supportsPassive ? { passive: true } : false);
+        canvas.removeEventListener("touchend", onMouseUp, supportsPassive ? { passive: true } : false);
+    } else {
+        canvas.removeEventListener("mousedown", onMouseDown);
+        canvas.removeEventListener("mousemove", onPressMove);
+        canvas.removeEventListener("mouseup", onMouseUp);
+    }
 }
 
 function setStage() {
@@ -56,15 +84,7 @@ function setStage() {
 
     stage = new createjs.Stage(canvas);
     stage.mouseMoveOutside = true;
-    if (isMobile) {
-        canvas.addEventListener("touchstart", onMouseDown, supportsPassive ? { passive: true } : false);
-        canvas.addEventListener("touchmove", onPressMove, supportsPassive ? { passive: true } : false);
-        canvas.addEventListener("touchend", onMouseUp, supportsPassive ? { passive: true } : false);
-    } else {
-        canvas.addEventListener("mousedown", onMouseDown);
-        canvas.addEventListener("mousemove", onPressMove);
-        canvas.addEventListener("mouseup", onMouseUp);
-    }
+    addEvent()
 
     console.log(width + ' : ' + stage.canvas.width);
     console.log(height + ' : ' + stage.canvas.height);
@@ -74,7 +94,7 @@ function setStage() {
 }
 function loadAnimations() {
     spriteBubbles = new createjs.SpriteSheet({
-        framerate: 15,
+        framerate: 25,
         "images": ["../data/images/dino.png"],
         "frames": { "regX": 0, "height": 93, "count": 70, "regY": 0, "width": 93 },
         "animations": {
@@ -302,7 +322,7 @@ function updateColor() {
             if (bubble.color != null) arColor.push(bubble.color)
         });
     });
-    
+
     for (var i = 0; i < arColor.length; i++) {
         var color = arColor[i]
         if (player.color.indexOf(color) === -1) {
@@ -401,12 +421,14 @@ function renderDotLine() {
     dotLineArr.forEach(dot => {
         drawDot(dot.x, dot.y)
     });
-    // console.log( lToIndex(dotLineArr[dotLineArr.length - 1].x, dotLineArr[dotLineArr.length - 1].y));
+    var index = lToIndex(dotLineArr[dotLineArr.length - 1].x, dotLineArr[dotLineArr.length - 1].y)
+    // console.log(index);
     var a = dotLineArr.filter(dot => dot.x == 0 || dot.x == stage.canvas.width)
     destinations = removeDuplicates(a)
-    destinations.push(dotLineArr[dotLineArr.length - 1])
+    destinations.push({ x: game.map[index.y][index.x].x, y: game.map[index.y][index.x].y })
     destinations = toReality(destinations)
     stage.addChild(containerLine)
+    // console.log(destinations[destinations.length - 1]);
 
 }
 function drawDot(x, y) {
@@ -428,8 +450,6 @@ function toReality(arr) {
     for (let i = 0; i < arr.length; i++) {
         if (arr[i].x == stage.canvas.width) arr[i] = { x: arr[i].x - game.bubble.currentWidth, y: arr[i].y }
     }
-    var index = lToIndex(arr[arr.length - 1].x, arr[arr.length - 1].y)
-    arr[arr.length - 1] = { x: game.map[index.y][index.x].x, y: game.map[index.y][index.x].y }
     return arr
 }
 function removeDuplicates(arr) {
@@ -440,19 +460,20 @@ function removeDuplicates(arr) {
     return [...maparr.values()]
 }
 //Kết thúc sự kiện di chuyển player
-function moveBubbleEnd() {
-    convertBubbles()
-    
-}
+// function moveBubbleEnd() {
+//     convertBubbles()
+// }
 //chuyển bubble player to bubble map
-function convertBubbles() {
+function moveBubbleEnd() {
+    // console.log('player.bubble: _____________   x: ' + player.bubble.x  + '   y: ' + player.bubble.y );
     var bubble = player.bubble.clone()
-    
+
     // var aReality = lToIndex(bubble.x, bubble.y)
-    var aReality = lToIndex(destinations[destinations.length-1].x, destinations[destinations.length-1].y)
-    var loacaton = game.map[aReality.y][aReality.x] 
-    bubble.x = loacaton.x
-    bubble.y = loacaton.y
+    var aReality = lToIndex(destinations[destinations.length - 1].x, destinations[destinations.length - 1].y)
+    // console.log(aReality);
+    var loacaton = game.map[aReality.y][aReality.x]
+    // bubble.x = loacaton.x
+    // bubble.y = loacaton.y
     containerMain.addChild(bubble)
 
     // console.log('x: ' + bubble.x + ' y: ' + bubble.y);
@@ -495,7 +516,7 @@ async function removeBubble(x, y) {
     if (bubbleRemove.length >= 3) {
         // console.log(bubbleRemove);
         var arrL = [], arrS = []
-        arrL.push({x: x, y: y})
+        arrL.push({ x: x, y: y })
         bubbleRemove.forEach(index => {
             if (index.y > y) arrL.push(index)
             else arrS.push(index)
@@ -529,7 +550,7 @@ async function removeBubble(x, y) {
                 }
             }
             index++
-        }, 90);
+        }, 30);
 
     } else {
         bubbleRemove.forEach(i => {
@@ -560,6 +581,10 @@ function bubbleDie(color, x, y) {
 //check bubble alone
 function checkAlone(direction, x, y) {
     var index = renderXY(direction, x, y)
+    // if(direction == 'TopLeft'){
+    //     console.log( 'TopLeft: ______ x: '+ index.x + ' y: ' + index.y );
+    //     console.log( 'player: ______ x: '+ index.x + ' y: ' + index.y );
+    // }
     if (game.map[index.y][index.x].existing == true && game.map[index.y][index.x].checkAlone == false) updateCheckAlone(index.x, index.y)
 }
 function updateCheckAlone(x, y) {
@@ -598,20 +623,43 @@ function resetAlone() {
 }
 async function removeBubbleAlone() {
     var arr = await getBubbleAlone()
-    arr.forEach(i => {
-        var a = game.map[i.y][i.x]
-        createjs.Tween.get(a.bubble)
-            .to({ y: a.bubble.y + 100 }, 500, createjs.Ease.linear)
-            .call(() => {
-                bubbleDie(a.color, a.bubble.x, a.bubble.y)
-                containerMain.removeChild(a.bubble)
-                a.bubble = null
-                updateLocationEmpty(i.x, i.y)
-            })
-    });
-    setPlayer()
-    setStar()
+    // console.log(arr);
+    if (arr.length != 0) {
+        var minY = game.map[arr[0].y][arr[0].x].bubble.y
+        var maxY = game.map[arr[0].y][arr[0].x].bubble.y
+        arr.forEach(i => {
+            if (game.map[i.y][i.x].bubble.y < minY) minY = game.map[i.y][i.x].bubble.y
+        });
+        arr.forEach(i => {
+            if (game.map[i.y][i.x].bubble.y > maxY) maxY = game.map[i.y][i.x].bubble.y
+        });
+        var averageY = (maxY + minY) / 2
+
+        arr.forEach(i => {
+            var rangeX = Math.floor(Math.random() * 2) + 10;
+            var calculation = Math.floor(Math.random() * 2);
+
+            var a = game.map[i.y][i.x]
+            var x = a.bubble.x
+            var y = a.bubble.y
+            var x1 = x1 = x - rangeX < 0 ? 0 : x - rangeX
+            var y1 = y >= averageY ? y - Math.floor(Math.random() * 20) - (y - averageY - 20) : y - Math.floor(Math.random() * 20) - 50
+            if (calculation == 1) x1 = x + rangeX > stage.canvas.width ? stage.canvas.width : x + rangeX
+            createjs.Tween.get(a.bubble)
+                // .to({ y: a.bubble.y + 100 }, 500, createjs.Ease.linear)
+                .to({ scaleX: 0.45, scaleY: 0.45, x: x1, y: y1 }, 200)
+                // .wait(5)
+                .to({ y: maxY + 200 }, (maxY + 200 - y) / 0.6)
+                .call(() => {
+                    bubbleDie(a.color, a.bubble.x, a.bubble.y)
+                    containerMain.removeChild(a.bubble)
+                    a.bubble = null
+                    updateLocationEmpty(i.x, i.y)
+                })
+        });
+    }
     resetAlone()
+    setStar()
 }
 async function setStar() {
     var complete = await checkComplete()
@@ -621,19 +669,14 @@ async function setStar() {
         star.scaleX = (stage.canvas.width * 8 / 9) / image.width;
         star.scaleY = (stage.canvas.width * 8 / 9) / image.width;
         star.x = (stage.canvas.width - star.scaleX * image.width) / 2
-        star.y = -star.scaleY * image.height
+        star.y = - star.scaleY * image.height
         stage.addChild(star);
         createjs.Tween.get(star)
             .to({ y: stage.canvas.height / 2 - (star.scaleY * image.height) * 2.5 / 3 }, 500, createjs.Ease.linear)
-        if (isMobile) {
-            canvas.removeEventListener("touchstart", onMouseDown, supportsPassive ? { passive: true } : false);
-            canvas.removeEventListener("touchmove", onPressMove, supportsPassive ? { passive: true } : false);
-            canvas.removeEventListener("touchend", onMouseUp, supportsPassive ? { passive: true } : false);
-        } else {
-            canvas.removeEventListener("mousedown", onMouseDown);
-            canvas.removeEventListener("mousemove", onPressMove);
-            canvas.removeEventListener("mouseup", onMouseUp);
-        }
+        removeEvent()
+    } else {
+        addEvent()
+        setPlayer()
     }
 }
 //check win
@@ -755,6 +798,8 @@ function tick(event) {
     if (update) {
         // update = false;
         stage.update(event);
+        // var arr = destinations
+        // if (arr != destinations) console.log('HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH');
     }
 }
 function detectMobile() {
@@ -851,16 +896,14 @@ function getAdjacent(x, y, die) {
         die == 1 ? checkDie('Top', x, y) : checkAlone('Top', x, y)
         die == 1 ? checkDie('TopRight', x, y) : checkAlone('TopRight', x, y)
         die == 1 ? checkDie('Bottom', x, y) : checkAlone('Bottom', x, y)
+        die == 1 ? checkDie('BottomRight', x, y) : checkAlone('BottomRight', x, y)
         if (x == 0) {
             die == 1 ? checkDie('Right', x, y) : checkAlone('Right', x, y)
-            die == 1 ? checkDie('BottomRight', x, y) : checkAlone('BottomRight', x, y)
         } else if (x == 9) {
             die == 1 ? checkDie('Left', x, y) : checkAlone('Left', x, y)
-            die == 1 ? checkDie('BottomLeft', x, y) : checkAlone('BottomLeft', x, y)
         } else {
             die == 1 ? checkDie('Left', x, y) : checkAlone('Left', x, y)
             die == 1 ? checkDie('Right', x, y) : checkAlone('Right', x, y)
-            die == 1 ? checkDie('BottomRight', x, y) : checkAlone('BottomRight', x, y)
         }
     } else {
         if (x == 0) {
@@ -925,12 +968,25 @@ function renderXY(direction, x, y) {
 function onMouseDown(evt) {
     pressMove = true
     var location = currentMouse(evt)
-    player.angle = limitAngle(radToDeg(location.x - player.x, location.y - player.y) + 180)
+    var anpha = radToDeg(location.x - player.x, location.y - player.y) + 180
+
+    // console.log(player.shoot);
+    if (anpha >= 8 && anpha <= 172) {
+        player.angle = limitAngle(anpha)
+        renderDotLine()
+    } else {
+        stage.removeChild(containerLine)
+        containerLine = new createjs.Container();
+        destinations = []
+    }
+
+
 }
 function onPressMove(evt) {
     if (pressMove) {
         var location = currentMouse(evt)
         var anpha = radToDeg(location.x - player.x, location.y - player.y) + 180
+        // console.log(player.shoot);
         if (anpha >= 8 && anpha <= 172) {
             player.angle = limitAngle(anpha)
             renderDotLine()
@@ -939,43 +995,61 @@ function onPressMove(evt) {
             containerLine = new createjs.Container();
             destinations = []
         }
+
     }
 }
 function onMouseUp(evt) {
     pressMove = false
-    // var location = currentMouse(evt)
-    // var anpha = radToDeg(location.x - player.x, location.y - player.y) + 180
-    // if (anpha >= 8 && anpha <= 172) {
-    //     player.angle = limitAngle(anpha)
-    //     renderDotLine()
-    // }
-    // if (containerLine) {
-    //     stage.removeChild(containerLine)
-    //     containerLine = new createjs.Container();
+    // console.log(destinations);
+    // console.log(player.shoot);
+
     if (destinations.length == 0) {
         return null;
     }
     if (destinations.length == 1) {
-        // console.log('Move: __________  x: ' +  lToIndex(destinations[0].x, destinations[0].y).x + ' y: ' + lToIndex(destinations[0].x, destinations[0].y).y);
+        removeEvent()
+        // console.log(player.shoot);
+        var endP = destinations[destinations.length - 1]
+        // console.log(endP);
+        // console.log('Move: __________  x: ' + lToIndex(endP.x, endP.y).x + ' y: ' + lToIndex(endP.x, endP.y).y);
+        var s = getDistance({ x: player.bubble.x, y: player.bubble.y }, destinations[0])
         createjs.Tween.get(player.bubble)
-            .to({ x: destinations[0].x, y: destinations[0].y }, 300, createjs.Ease.linear)
+            .to({ x: destinations[0].x, y: destinations[0].y }, s / player.v, createjs.Ease.linear)
             .call(moveBubbleEnd)
     } else {
+        removeEvent()
+        // console.log(player.shoot);
+        // console.log(destinations[destinations.length - 1]);
+        // console.log('Move: __________  x: ' + lToIndex(destinations[destinations.length - 1].x, destinations[destinations.length - 1].y).x + ' y: ' + lToIndex(destinations[destinations.length - 1].x, destinations[destinations.length - 1].y).y);
+        var s = getDistance({ x: player.bubble.x, y: player.bubble.y }, destinations[0])
         createjs.Tween.get(player.bubble)
-            .to({ x: destinations[0].x, y: destinations[0].y }, 300, createjs.Ease.linear)
+            .to({ x: destinations[0].x, y: destinations[0].y }, s / player.v, createjs.Ease.linear)
+            .call(move)
         var i = 1
-        var moveBubble = setInterval(function () {
-            // console.log('Move: __________  x: ' +  lToIndex(destinations[0].x, destinations[0].y).x + ' y: ' + lToIndex(destinations[0].x, destinations[0].y).y);
-
+        function move() {
+            s = getDistance(destinations[i - 1], destinations[i])
             createjs.Tween.get(player.bubble)
-                .to({ x: destinations[i].x, y: destinations[i].y }, 300, createjs.Ease.linear)
-            if (i == destinations.length - 1) clearInterval(moveBubble);
-            i++
-        }, 300);
-        setTimeout(moveBubbleEnd, 300 * destinations.length);
+                .to({ x: destinations[i].x, y: destinations[i].y }, s / (player.v * (1 + i / 10)), createjs.Ease.linear)
+                .call(() => {
+                    if (i < destinations.length - 1) {
+                        i++
+                        move()
+                    } else moveBubbleEnd()
+                })
+        }
     }
     stage.removeChild(containerLine)
     containerLine = new createjs.Container();
-    // }
+
+
 
 }
+function getDistance(p1, p2) {
+    var a = p1.x - p2.x;
+    var b = p1.y - p2.y;
+
+    return Math.sqrt(a * a + b * b);
+}
+
+
+// http://jsfiddle.net/fe099458/
