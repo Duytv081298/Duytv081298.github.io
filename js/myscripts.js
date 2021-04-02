@@ -45,7 +45,6 @@ var nInName = 0
 
 // Hàm khởi tạo
 async function init() {
-    createjs.MotionGuidePlugin.install(createjs.Tween);
     await setStage()
     game.map = setMap()
     loadAnimations()
@@ -623,7 +622,6 @@ function resetAlone() {
 }
 async function removeBubbleAlone() {
     var arr = await getBubbleAlone()
-    // console.log(arr);
     if (arr.length != 0) {
         var minY = game.map[arr[0].y][arr[0].x].bubble.y
         var maxY = game.map[arr[0].y][arr[0].x].bubble.y
@@ -655,11 +653,15 @@ async function removeBubbleAlone() {
                     containerMain.removeChild(a.bubble)
                     a.bubble = null
                     updateLocationEmpty(i.x, i.y)
+                    setStar()
                 })
         });
     }
     resetAlone()
     setStar()
+    setPlayer()
+
+
 }
 async function setStar() {
     var complete = await checkComplete()
@@ -676,7 +678,6 @@ async function setStar() {
         removeEvent()
     } else {
         addEvent()
-        setPlayer()
     }
 }
 //check win
